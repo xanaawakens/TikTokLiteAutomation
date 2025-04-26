@@ -18,7 +18,7 @@ local config = {
     github = {
         owner = "xanaawakens",             -- Tên người dùng GitHub
         repo = "TikTokLiteAutomation",  -- Tên repository
-        branch = "main",                -- Nhánh (thường là main hoặc master)
+        branch = "master",                -- Nhánh (thường là main hoặc master)
     },
     
     -- Đường dẫn trên thiết bị
