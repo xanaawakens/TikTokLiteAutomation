@@ -30,10 +30,14 @@ function tapLiveButton()
     local found, x, y = checkButtonLive()
     
     if found then
-        -- Chờ 3 giây trước khi bấm
-        toast("Đã tìm thấy nút xem live, chờ 3 giây trước khi bấm...")
-        for i = 3, 1, -1 do
-            toast("Còn " .. i .. " giây trước khi bấm")
+        
+        -- Kiểm tra và xử lý popup trước khi bấm nút live
+        toast("Kiểm tra popup trước khi bấm vào nút live")
+        if utils.checkAndClosePopup() then
+            toast("Đã đóng popup, tiếp tục bấm nút live sau 1 giây")
+            mSleep(1000)
+        else
+            toast("Không phát hiện popup, tiếp tục bấm nút live")
             mSleep(1000)
         end
         
@@ -169,5 +173,6 @@ return {
     tapRewardButton = tapRewardButton,
     checkClaimButton = checkClaimButton,
     tapClaimButton = tapClaimButton,
-    checkCompleteButton = checkCompleteButton
+    checkCompleteButton = checkCompleteButton,
+    checkAndClosePopup = utils.checkAndClosePopup
 }

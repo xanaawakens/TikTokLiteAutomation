@@ -265,6 +265,82 @@ function initLogging()
     end
 end
 
+-- Hàm kiểm tra và đóng popup ở vùng màn hình cụ thể
+function checkAndClosePopup()
+    -- Lấy kích thước màn hình để tìm kiếm toàn màn hình
+    local width, height = getScreenSize()
+    
+    -- Đường dẫn đến hình ảnh popup
+    local popupImage = "popup1.png"  -- Không cần đường dẫn đầy đủ, chỉ cần tên file trong thư mục res
+    
+    -- Thiết lập thời gian tìm kiếm tối đa là 5 giây
+    local startTime = os.time()
+    local timeoutSeconds = 5
+    
+    nLog("Bắt đầu tìm kiếm popup - Thời gian tối đa: " .. timeoutSeconds .. " giây")
+    
+    -- Lặp tìm kiếm popup trong khoảng thời gian 5 giây
+    while (os.time() - startTime < timeoutSeconds) do
+        -- Tìm kiếm hình ảnh popup1.png trên toàn màn hình với phương pháp nhị phân hóa (kind=1)
+        local x, y = findImageInRegionFuzzy(popupImage, 90, 0, 0, width, height, 0, 1)
+        
+        if x ~= -1 and y ~= -1 then  -- Kiểm tra đúng cách: x, y khác -1 là tìm thấy
+            nLog("Đã tìm thấy popup tại vị trí " .. x .. "," .. y .. " sau " .. (os.time() - startTime) .. " giây")
+            
+            -- Tính toán điểm vuốt (từ dưới lên trên popup)
+            local swipeStartX = x + 50 -- Điểm vuốt cách vị trí tìm thấy 50px theo chiều ngang
+            local swipeStartY = y + 100 -- Điểm bắt đầu vuốt ở dưới popup
+            local swipeEndX = swipeStartX -- Cùng vị trí X
+            local swipeEndY = y - 50 -- Điểm kết thúc vuốt ở trên popup
+            
+            -- Đảm bảo điểm vuốt nằm trong màn hình
+            swipeStartY = math.min(swipeStartY, height - 10)
+            swipeEndY = math.max(swipeEndY, 10)
+            
+            -- Thực hiện vuốt để đóng popup
+            nLog("Đang vuốt để đóng popup từ (" .. swipeStartX .. "," .. swipeStartY .. ") đến (" .. swipeEndX .. "," .. swipeEndY .. ")")
+            
+            touchDown(1, swipeStartX, swipeStartY)
+            mSleep(50)
+            
+            -- Di chuyển ngón tay lên trên để đóng popup
+            for i = 1, 10 do
+                local currentY = swipeStartY - i * ((swipeStartY - swipeEndY) / 10)
+                touchMove(1, swipeStartX, currentY)
+                mSleep(5)
+            end
+            
+            touchUp(1, swipeEndX, swipeEndY)
+            
+            -- Đợi sau khi đóng popup
+            mSleep(1000)
+            
+            return true -- Đã tìm thấy và đóng popup
+        end
+        
+        -- Đợi 200ms trước khi tìm kiếm lại
+        mSleep(200)
+    end
+    
+    nLog("Không tìm thấy popup sau " .. timeoutSeconds .. " giây")
+    return false -- Không tìm thấy popup
+end
+
+-- Hàm bấm vào nút live sau khi kiểm tra popup
+function clickLiveWithPopupCheck(liveButtonX, liveButtonY)
+    if checkAndClosePopup() then
+        nLog("Đã đóng popup, tiếp tục bấm nút live")
+    else
+        nLog("Không có popup, tiếp tục bấm nút live")
+    end
+    
+    -- Đợi sau khi kiểm tra popup
+    mSleep(1000)
+    
+    -- Bấm vào nút live
+    tap(liveButtonX, liveButtonY)
+end
+
 -- Xuất các hàm
 return {
     -- Kiểm tra và mở ứng dụng
@@ -284,5 +360,9 @@ return {
     
     -- Khởi tạo
     getDeviceScreen = getDeviceScreen,
-    initLogging = initLogging
+    initLogging = initLogging,
+    
+    -- Xử lý popup
+    checkAndClosePopup = checkAndClosePopup,
+    clickLiveWithPopupCheck = clickLiveWithPopupCheck
 }
