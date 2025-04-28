@@ -125,6 +125,14 @@ function openTikTokLite(skipCheck)
         mSleep(1000)
     end
     
+    -- Kiểm tra và đóng popup Add Friends nếu xuất hiện
+    toast("Kiểm tra popup Add Friends sau khi mở app...")
+    if checkAndCloseAddFriendsPopup() then
+        toast("Đã đóng popup Add Friends")
+    else
+        toast("Không thấy popup Add Friends hoặc đã đóng tự động")
+    end
+    
     -- Bỏ qua kiểm tra nếu được yêu cầu
     if skipCheck then
         toast("Bỏ qua kiểm tra, coi như đã mở thành công")
@@ -341,6 +349,53 @@ function clickLiveWithPopupCheck(liveButtonX, liveButtonY)
     tap(liveButtonX, liveButtonY)
 end
 
+-- Hàm kiểm tra và đóng popup Add Friends khi mới mở app TikTok
+function checkAndCloseAddFriendsPopup()
+    -- Lấy kích thước màn hình để tìm kiếm toàn màn hình
+    local width, height = getScreenSize()
+    
+    -- Đường dẫn đến hình ảnh popup
+    local popupImage = "popupAddFriends.png"
+    
+    -- Thiết lập thời gian tìm kiếm tối đa là 5 giây
+    local startTime = os.time()
+    local timeoutSeconds = 5
+    
+    nLog("Bắt đầu tìm kiếm popup Add Friends - Thời gian tối đa: " .. timeoutSeconds .. " giây")
+    
+    -- Lặp tìm kiếm popup trong khoảng thời gian 5 giây
+    while (os.time() - startTime < timeoutSeconds) do
+        -- Tìm kiếm hình ảnh popupAddFriends.png trên toàn màn hình với phương pháp nhị phân hóa (kind=1)
+        local x, y = findImageInRegionFuzzy(popupImage, 90, 0, 0, width, height, 0, 1)
+        
+        if x ~= -1 and y ~= -1 then  -- Kiểm tra đúng cách: x, y khác -1 là tìm thấy
+            nLog("Đã tìm thấy popup Add Friends tại vị trí " .. x .. "," .. y .. " sau " .. (os.time() - startTime) .. " giây")
+            
+            -- Click vào vị trí 400,1267 để đóng popup
+            local closeX = 400
+            local closeY = 1267
+            
+            nLog("Đóng popup Add Friends bằng cách click vào vị trí " .. closeX .. "," .. closeY)
+            
+            -- Thực hiện click
+            touchDown(1, closeX, closeY)
+            mSleep(50)
+            touchUp(1, closeX, closeY)
+            
+            -- Đợi sau khi đóng popup
+            mSleep(1000)
+            
+            return true -- Đã tìm thấy và đóng popup
+        end
+        
+        -- Đợi 200ms trước khi tìm kiếm lại
+        mSleep(200)
+    end
+    
+    nLog("Không tìm thấy popup Add Friends sau " .. timeoutSeconds .. " giây")
+    return false -- Không tìm thấy popup
+end
+
 -- Xuất các hàm
 return {
     -- Kiểm tra và mở ứng dụng
@@ -364,5 +419,6 @@ return {
     
     -- Xử lý popup
     checkAndClosePopup = checkAndClosePopup,
+    checkAndCloseAddFriendsPopup = checkAndCloseAddFriendsPopup,
     clickLiveWithPopupCheck = clickLiveWithPopupCheck
 }
