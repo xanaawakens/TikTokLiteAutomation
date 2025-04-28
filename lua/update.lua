@@ -49,13 +49,22 @@ local function extractFilesFromGitHubHTML(folderPath)
     f:close()
     os.remove(tempFile)
     
-    -- Pattern to match file entries in GitHub HTML
-    local pattern = folderPath .. "/([^\"]+)%.lua"
+    -- Different pattern depending on the folder
+    local pattern
+    if folderPath == "lua" then
+        -- Only look for .lua files in lua directory
+        pattern = folderPath .. "/([^\"]+%.lua)"
+    else
+        -- Look for all file types in other directories (like res)
+        pattern = folderPath .. "/([^\"]+%.[^\"%.]+)"
+    end
     
     -- Extract all matches
+    local foundFiles = {}
     for fileName in string.gmatch(content, pattern) do
-        if fileName ~= "" and not string.match(fileName, "/") then
-            files[#files + 1] = fileName .. ".lua"
+        if not foundFiles[fileName] and not string.match(fileName, "/") then
+            foundFiles[fileName] = true
+            files[#files + 1] = fileName
         end
     end
     
