@@ -77,7 +77,7 @@ function runTikTokLiteAutomation()
                 
                 if rewardTapped then
                     -- Chờ 5 giây sau khi bấm nút để giao diện phần thưởng load
-                    mSleep(5000)
+                    mSleep(8000)
                     
                     -- Vuốt từ dưới lên trên (cuộn xuống)
                     local swipeConfig = config.ui.swipe
