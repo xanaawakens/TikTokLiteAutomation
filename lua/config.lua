@@ -160,6 +160,17 @@ local config = {
         level = "info",           -- Mức độ ghi log (debug, info, warn, error)
         save_to_file = true,      -- Lưu log vào file
         show_on_screen = true     -- Hiển thị log trên màn hình
+    },
+
+    -- Thêm vào phần cấu hình mới cho ADManager
+    -- Cài đặt cho ADManager và chuyển tài khoản
+    admanager = {
+        bundle_id = "com.tigisoftware.ADManager",  -- Bundle ID của ADManager
+        app_list_coord = {377, 1278},              -- Tọa độ để bấm vào danh sách app
+        restore_button_coord = {378, 1138},        -- Tọa độ nút Restore AppData
+        tiktok_icon = "tiktok_lite_icon.png",      -- Tên file icon TikTok Lite
+        backup_numbers = {1, 2, 3, 4, 5},          -- Các số backup mặc định
+        max_backup_number = 50                     -- Số backup tối đa
     }
 }
 
