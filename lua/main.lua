@@ -209,8 +209,13 @@ function runTikTokLiteAutomation()
                         end
                     end
                     
-                    -- Kiểm tra popup nhiệm vụ trong 150 giây đầu tiên sau khi claim đầu tiên (mỗi 3 giây một lần)
+                    -- Kiểm tra các popup trong 150 giây đầu tiên sau khi claim đầu tiên (mỗi 3 giây một lần)
                     local currentTime = os.time()
+                    
+                    -- Lấy kích thước màn hình một lần duy nhất
+                    local screenW, screenH = getScreenSize()
+                    
+                    -- Kiểm tra popup nhiệm vụ (chỉ trong 150 giây đầu)
                     if firstClaimTime ~= nil and 
                        (currentTime - firstClaimTime <= 150) and
                        (currentTime - lastPopupCheckTime >= 3) then
@@ -218,17 +223,18 @@ function runTikTokLiteAutomation()
                         -- Cập nhật thời gian kiểm tra popup
                         lastPopupCheckTime = currentTime
                         
-                        -- Lấy kích thước màn hình
-                        local screenW, screenH = getScreenSize()
-                        
-                        -- Tìm kiếm hình popup trong toàn màn hình
-                        local x, y = findImageInRegionFuzzy("popupMission.png", 90, 1, 1, screenW, screenH, 0)
-                        
-                        if x ~= -1 and y ~= -1 then
-                            -- Bấm vào tọa độ để đóng popup
+                        local missionX, missionY = findImageInRegionFuzzy("popupMission.png", 90, 1, 1, screenW, screenH, 0)
+                        if missionX ~= -1 and missionY ~= -1 then
                             tap(375, 1059)
-                            mSleep(1000)  -- Đợi sau khi bấm
+                            mSleep(1000)
                         end
+                    end
+                    
+                    -- Kiểm tra popup Reward upgraded (kiểm tra liên tục)
+                    local rewardX, rewardY = findImageInRegionFuzzy("popup2.png", 90, 1, 1, screenW, screenH, 0)
+                    if rewardX ~= -1 and rewardY ~= -1 then
+                        tap(359, 993)
+                        mSleep(1000)
                     end
                     
                     -- Vuốt từ dưới lên trên định kỳ (sau mỗi 15 giây)
