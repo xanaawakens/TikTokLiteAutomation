@@ -191,7 +191,7 @@ function findBackupNumber(number)
         toast("Số backup phải từ 1-50")
         return false, 0, 0
     end
-
+    
     -- Định nghĩa ma trận màu cho các số 1-50
     local matrix_color_number = {
         -- Số 1
@@ -1402,19 +1402,58 @@ function findBackupNumber(number)
     
     toast("Tìm kiếm trong vùng: " .. searchLeft .. "," .. searchTop .. " đến " .. searchRight .. "," .. searchBottom)
     
-    -- Tìm kiếm mẫu màu trong vùng tìm kiếm
-    local x, y = findMultiColorInRegionFuzzy(mainColor, offsetStr, 90, 
-                                            searchLeft, searchTop, searchRight, searchBottom)
+    -- Tìm kiếm với tự động cuộn xuống
+    local maxScrolls = 10  -- Số lần cuộn tối đa
+    local currentScroll = 0
+    local found = false
+    local x, y = -1, -1
     
-    if x ~= -1 and y ~= -1 then
-        toast("Đã tìm thấy số " .. number .. " tại vị trí: " .. x .. "," .. y)
+    while currentScroll <= maxScrolls and not found do
+        -- Tìm kiếm mẫu màu trong vùng tìm kiếm
+        x, y = findMultiColorInRegionFuzzy(mainColor, offsetStr, 90, 
+                                        searchLeft, searchTop, searchRight, searchBottom)
         
+        if x ~= -1 and y ~= -1 then
+            -- Đã tìm thấy, thoát khỏi vòng lặp
+            found = true
+            toast("Đã tìm thấy số " .. number .. " tại vị trí: " .. x .. "," .. y .. " sau " .. currentScroll .. " lần cuộn")
+            break
+        end
+        
+        -- Nếu không tìm thấy và chưa cuộn tối đa, thì cuộn xuống
+        if currentScroll < maxScrolls then
+            currentScroll = currentScroll + 1
+            toast("Không tìm thấy, cuộn xuống lần " .. currentScroll .. "/" .. maxScrolls)
+            
+            -- Thực hiện cuộn xuống - cuộn nhẹ để tìm kiếm cẩn thận
+            local startY = math.floor(height * 0.7)  -- 70% chiều cao màn hình
+            local endY = math.floor(height * 0.3)    -- 30% chiều cao màn hình
+            
+            -- Cuộn từ từ
+            touchDown(1, width/2, startY)
+            mSleep(100)
+            
+            -- Di chuyển từ từ lên trên để tránh cuộn quá nhanh và bỏ qua số
+            for i = 1, 5 do
+                local currentY = startY - (startY - endY) * (i / 5)
+                touchMove(1, width/2, currentY)
+                mSleep(50)
+            end
+            
+            touchUp(1, width/2, endY)
+            mSleep(1000)  -- Đợi màn hình ổn định sau khi cuộn
+        else
+            toast("Đã cuộn tối đa " .. maxScrolls .. " lần nhưng không tìm thấy số " .. number)
+        end
+    end
+    
+    if found then
         -- Tọa độ bấm: giữa màn hình theo chiều ngang, giữ nguyên tọa độ y đã tìm thấy
         local tapX = 375
         local tapY = y
         return true, tapX, tapY
     else
-        toast("Không tìm thấy số " .. number .. " trong vùng tìm kiếm")
+        toast("Không tìm thấy số " .. number .. " sau " .. maxScrolls .. " lần cuộn")
         return false, 0, 0
     end
 end
