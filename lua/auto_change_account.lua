@@ -601,13 +601,12 @@ function main()
         changeAccount(getAccountName())
         
         switchTikTokAccount()
-        mSleep(6000)
         local currentFile = io.open(output_folder .. "/currentbackup.txt", "w")
         if currentFile then
             currentFile:write(currentAccount + 1 .. "\n" .. totalAccounts)
             currentFile:close()
         end
-        mSleep(1000)
+        mSleep(7000)
         
         toast("Đang chạy account thứ " .. currentAccount .. "/" .. totalAccounts)
         mSleep(1000)
