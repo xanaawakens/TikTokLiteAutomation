@@ -565,26 +565,57 @@ function main()
     
     -- Chạy từ account hiện tại đến hết
     while currentAccount <= totalAccounts do
+        -- Đóng tất cả ứng dụng trước khi chuyển account
         closeApp("*",1)
         mSleep(3000)
-        changeAccount(getAccountName())
         
+        -- Lấy tên account và thực hiện chuyển đổi
+        local accountName = getAccountName()
+        if not accountName then
+            toast("Không thể lấy tên account")
+            return false
+        end
+        
+        local success = changeAccount(accountName)
+        if not success then
+            toast("Không thể chuyển sang account " .. currentAccount)
+            return false
+        end
+        
+        toast("Đang chuyển sang account " .. currentAccount)
+        mSleep(1500)
+        
+        -- Chuyển account trong TikTok
         switchTikTokAccount()
+        mSleep(1500)
+        
+        -- Cập nhật file currentbackup.txt trước khi chạy automation
         local currentFile = io.open(output_folder .. "/currentbackup.txt", "w")
         if currentFile then
             currentFile:write(currentAccount + 1 .. "\n" .. totalAccounts)
             currentFile:close()
+        else
+            toast("Không thể cập nhật file currentbackup.txt")
+            return false
         end
+        
         mSleep(7000)
         
+        -- Chạy automation cho account hiện tại
         toast("Đang chạy account thứ " .. currentAccount .. "/" .. totalAccounts)
         mSleep(1000)
+        
         runTikTokLiteAutomation()
+        
         mSleep(3000)
         closeApp("*",1)
+        
+        -- Tăng số account sau khi chạy xong
+        currentAccount = currentAccount + 1
     end
     
     toast("Đã chạy xong tất cả " .. totalAccounts .. " account")
+    return true
 end
 
 main()
