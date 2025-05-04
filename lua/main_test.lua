@@ -269,110 +269,22 @@ end
 
 -- Thực thi kịch bản với xử lý lỗi và chuyển tài khoản tự động
 function main()
-    local endAccount = 20
+    -- Bọc trong pcall để bắt lỗi
+    local status, result = pcall(runTikTokLiteAutomation)
     
-    -- Đọc số backup hiện tại từ file
-    local currentBackupFile = io.open("/private/var/mobile/Media/TouchSprite/lua/currentbackup.txt", "r")
-    local startAccount = 1
-    
-    if currentBackupFile then
-        startAccount = tonumber(currentBackupFile:read("*all")) or 1
-        currentBackupFile:close()
+    if not status then
+        -- Lỗi runtime
+        local errorMsg = "Lỗi thực thi: " .. tostring(result)
+        toast(errorMsg)
     else
-        mSleep(1000)
-        toast("Không tìm thấy file currentbackup.txt, bắt đầu từ tài khoản 1")
-        mSleep(1000)
-    end
-    
-    -- Kiểm tra giới hạn hợp lệ
-    if startAccount < 1 then startAccount = 1 end
-    if startAccount > endAccount then startAccount = 1 end
-    
-    local currentAccount = startAccount
-    
-    toast("Bắt đầu vòng lặp từ tài khoản " .. currentAccount .. " đến tài khoản " .. endAccount)
-    
-    -- Restore tài khoản đầu tiên
-    toast("Đang restore tài khoản " .. currentAccount)
-    local switchSuccess = switchTikTokAccount(currentAccount)
-    mSleep(5000)
-    
-    if not switchSuccess then
-        toast("Không thể restore tài khoản " .. currentAccount .. ", thử lại...")
-        switchSuccess = switchTikTokAccount(currentAccount)
-        mSleep(5000)
-        
-        if not switchSuccess then
-            toast("Không thể restore tài khoản " .. currentAccount .. ". Kết thúc chương trình.")
-            return false
-        end
-    end
-    
-    -- Vòng lặp qua tất cả các tài khoản
-    while currentAccount <= endAccount do
-        -- Hiển thị thông báo bắt đầu với tài khoản hiện tại
-        toast("Bắt đầu kiểm tra tài khoản số " .. currentAccount)
-        
-        -- Bọc trong pcall để bắt lỗi
-        local status, result = pcall(runTikTokLiteAutomation)
-        
-        if not status then
-            -- Lỗi runtime
-            local errorMsg = "Lỗi thực thi với tài khoản " .. currentAccount .. ": " .. tostring(result)
-            toast(errorMsg)
+        -- Kết quả thực thi
+        if result then
+            toast("Kịch bản thực thi thành công")
         else
-            -- Kết quả thực thi
-            if result then
-                toast("Kịch bản thực thi thành công với tài khoản " .. currentAccount)
-            else
-                toast("Kịch bản thất bại với tài khoản " .. currentAccount)
-            end
-        end
-        
-        -- Cập nhật tài khoản tiếp theo
-        currentAccount = currentAccount + 1
-        
-        -- Nếu chưa phải tài khoản cuối cùng, chuyển sang tài khoản tiếp theo
-        if currentAccount <= endAccount then
-            toast("Đang chuyển sang tài khoản " .. currentAccount)
-            
-            -- Lưu tài khoản hiện tại vào file
-            local nextBackupFile = io.open("/private/var/mobile/Media/TouchSprite/lua/currentbackup.txt", "w")
-            if nextBackupFile then
-                nextBackupFile:write(tostring(currentAccount))
-                nextBackupFile:close()
-                toast("Đã lưu tài khoản hiện tại: " .. currentAccount)
-            else
-                toast("Không thể lưu số tài khoản hiện tại")
-            end
-            
-            -- Chuyển tài khoản, thêm delay để đảm bảo ổn định
-            local switchSuccess = switchTikTokAccount(currentAccount)
-            mSleep(5000)
-            
-            if not switchSuccess then
-                toast("Không thể chuyển sang tài khoản " .. currentAccount .. ", thử lại...")
-                -- Thử lại một lần nữa nếu không thành công
-                switchSuccess = switchTikTokAccount(currentAccount)
-                mSleep(5000)
-                
-                if not switchSuccess then
-                    toast("Không thể chuyển sang tài khoản " .. currentAccount .. ". Kết thúc kiểm tra.")
-                    break
-                end
-            end
-        else
-            -- Đã kiểm tra xong tất cả tài khoản, quay lại tài khoản 1 cho lần chạy tiếp theo
-            local nextBackupFile = io.open("/private/var/mobile/Media/TouchSprite/lua/currentbackup.txt", "w")
-            if nextBackupFile then
-                nextBackupFile:write("1")
-                nextBackupFile:close()
-                toast("Đã hoàn thành tất cả tài khoản. Đặt lại về tài khoản 1 cho lần chạy tiếp theo")
-            end
+            toast("Kịch bản thất bại")
         end
     end
     
-    toast("Đã hoàn thành vòng lặp từ tài khoản " .. startAccount .. " đến tài khoản " .. endAccount)
     return true
 end
 
