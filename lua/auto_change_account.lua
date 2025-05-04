@@ -533,7 +533,7 @@ function runTikTokLiteAutomation()
                     -- Kiểm tra popup Reward upgraded (kiểm tra liên tục)
                     local rewardX, rewardY = findImageInRegionFuzzy("popup2.png", 90, 1, 1, screenW, screenH, 0)
                     if rewardX ~= -1 and rewardY ~= -1 then
-                        tap(359, 993)
+                        tap(357,1033)
                         mSleep(1000)
                     end
                     
