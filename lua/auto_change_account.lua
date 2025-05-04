@@ -528,7 +528,7 @@ function runTikTokLiteAutomation()
                                 
                                 if completeFound then
                                     -- Hiển thị toast hoàn thành claim
-                                    toast("Hoàn thành nhận phần thưởng!", "Thông báo")
+                                    toast("Hoàn thành nhận phần thưởng!")
                                     return true
                                 end
                                 
@@ -583,7 +583,7 @@ function runTikTokLiteAutomation()
             return true
         end
     else
-        toast("Tài khoản bị chặn xem live", "Cảnh báo")
+        toast("Tài khoản bị chặn xem live")
         return false
     end
 end
