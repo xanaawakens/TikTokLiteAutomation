@@ -352,7 +352,7 @@ function runTikTokLiteAutomation()
     
     -- 2. Kiểm tra app đã cài đặt chưa
     if not utils.isTikTokLiteInstalled() then
-        dialog("Lỗi: TikTok Lite chưa được cài đặt!")
+        toast("Lỗi: TikTok Lite chưa được cài đặt!")
         return false
     end
     
@@ -361,7 +361,7 @@ function runTikTokLiteAutomation()
     local success = utils.openTikTokLite(false)
     
     if not success then
-        dialog("Không thể mở TikTok Lite! Hãy kiểm tra lại ứng dụng.")
+        toast("Không thể mở TikTok Lite! Hãy kiểm tra lại ứng dụng.")
         return false
     end
     
@@ -416,8 +416,8 @@ function runTikTokLiteAutomation()
                     local completeFound, _, _ = rewards_live.checkCompleteButton()
                     
                     if completeFound then
-                        -- Hiển thị dialog hoàn thành claim
-                        dialog("Hoàn thành nhận phần thưởng!", "Thông báo")
+                        -- Hiển thị toast hoàn thành claim
+                        toast("Hoàn thành nhận phần thưởng!", "Thông báo")
                         return true
                     end
                     
@@ -431,7 +431,7 @@ function runTikTokLiteAutomation()
             
             -- Nếu không tìm thấy nút phần thưởng sau khi kiểm tra đủ thời gian
             if not rewardTapped then
-                dialog("Tài khoản có thể bị FAQ!", "Cảnh báo")
+                toast("Tài khoản có thể bị FAQ!", "Cảnh báo")
                 return false
             end
 
@@ -477,8 +477,8 @@ function runTikTokLiteAutomation()
                         
                         -- Kiểm tra nếu có 3 lần claim liên tiếp trong khoảng thời gian dưới 20 giây
                         if #recentClaimTimes == 3 and (recentClaimTimes[3] - recentClaimTimes[1]) < 20 then
-                            -- Hiển thị dialog thông báo lỗi
-                            dialog("Lỗi: Something went wrong", "Cảnh báo")
+                            -- Hiển thị toast thông báo lỗi
+                            toast("Lỗi: Something went wrong", "Cảnh báo")
                             return false  -- Dừng chương trình
                         end
                         
@@ -489,8 +489,8 @@ function runTikTokLiteAutomation()
                         completeFound, _, _ = rewards_live.checkCompleteButton()
                         
                         if completeFound then
-                            -- Hiển thị dialog hoàn thành claim
-                            dialog("Hoàn thành nhận phần thưởng!", "Thông báo")
+                            -- Hiển thị toast hoàn thành claim
+                            toast("Hoàn thành nhận phần thưởng!", "Thông báo")
                             break  -- Thoát khỏi vòng lặp khi tìm thấy nút complete
                         end
                     end
@@ -527,8 +527,8 @@ function runTikTokLiteAutomation()
                                 local completeFound, _, _ = rewards_live.checkCompleteButton()
                                 
                                 if completeFound then
-                                    -- Hiển thị dialog hoàn thành claim
-                                    dialog("Hoàn thành nhận phần thưởng!", "Thông báo")
+                                    -- Hiển thị toast hoàn thành claim
+                                    toast("Hoàn thành nhận phần thưởng!", "Thông báo")
                                     return true
                                 end
                                 
@@ -583,7 +583,7 @@ function runTikTokLiteAutomation()
             return true
         end
     else
-        dialog("Tài khoản bị chặn xem live", "Cảnh báo")
+        toast("Tài khoản bị chặn xem live", "Cảnh báo")
         return false
     end
 end
