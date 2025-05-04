@@ -244,7 +244,6 @@ end
 
 -- Tìm và bấm vào ứng dụng TikTok Lite bằng tìm kiếm màu sắc
 function findAndClickTikTokIcon()
-    toast("Đang tìm biểu tượng TikTok Lite bằng mẫu màu")
     
     -- Màu chính và các điểm offset
     local mainColor = 0x000000  -- Màu chính là màu đen
@@ -261,12 +260,10 @@ function findAndClickTikTokIcon()
     local x, y = findMultiColorInRegionFuzzy(mainColor, offsetStr, config.accuracy.color_similarity, 0, 0, width, height)
     
     if x ~= -1 and y ~= -1 then
-        toast("Đã tìm thấy biểu tượng TikTok Lite ở vị trí: " .. x .. ", " .. y)
         tap(x, y)
         mSleep(2000)
         return true
     else
-        toast("Không tìm thấy biểu tượng TikTok Lite")
         
         -- Thử tìm kiếm lại với mẫu màu thay thế
         -- (Mẫu này dựa trên chuỗi gốc của người dùng: 41,357,0x00000064,354,0x00000083,358,0x00000086,400,0x00000039,401,0x00000055,380,0xffffff50,395,0xfeffff67,394,0xfeffff68,368,0xffffff79,372,0xffffff)
@@ -298,12 +295,10 @@ function findAndClickTikTokIcon()
         x, y = findMultiColorInRegionFuzzy(mainColor, offsetStr, config.accuracy.color_similarity, 0, 0, width, height)
         
         if x ~= -1 and y ~= -1 then
-            toast("Đã tìm thấy biểu tượng TikTok Lite với mẫu thay thế ở vị trí: " .. x .. ", " .. y)
             tap(x, y)
             mSleep(2000)
             return true
         else
-            toast("Không tìm thấy biểu tượng TikTok Lite với cả hai mẫu màu")
             return false
         end
     end
@@ -352,42 +347,31 @@ function runTikTokLiteAutomation()
     
     -- 2. Kiểm tra app đã cài đặt chưa
     if not utils.isTikTokLiteInstalled() then
-        toast("Lỗi: TikTok Lite chưa được cài đặt!")
         return false
     end
     
     -- 3. Mở ứng dụng TikTok Lite (chỉ mở một lần)
-    toast("Mở ứng dụng TikTok Lite...")
     local success = utils.openTikTokLite(false)
     
     if not success then
-        toast("Không thể mở TikTok Lite! Hãy kiểm tra lại ứng dụng.")
         return false
     end
     
     -- 4. Đợi ứng dụng ổn định
-    toast("Đợi ứng dụng ổn định...")
     mSleep(3000)  -- Tăng thời gian đợi để ứng dụng ổn định hơn
     
     -- 5. Tìm và bấm vào nút xem live
-    toast("Tìm kiếm nút xem live...")
     local tapped = rewards_live.tapLiveButton()
     
     if tapped then
         -- 6. Đợi màn hình live load xong
-        toast("Đã bấm vào nút live, đang đợi...")
         
         -- Đợi hoặc xác nhận màn hình live
         local liveLoaded = rewards_live.waitForLiveScreen()
         
         if liveLoaded then
-            -- 7. Thực hiện các hành động trong live
-            toast("Đã vào màn hình live thành công")
             
-            -- Chờ thêm 3 giây sau khi xác nhận live đã load
-            toast("Chờ 3 giây trước khi tìm kiếm nút phần thưởng...")
             for i = 3, 1, -1 do
-                toast("Còn " .. i .. " giây")
                 mSleep(1000)
             end
             
@@ -398,7 +382,6 @@ function runTikTokLiteAutomation()
             local rewardTapped = false
 
             -- Kiểm tra nút phần thưởng trong 12 giây, mỗi lần cách nhau 1.5 giây
-            toast("Bắt đầu kiểm tra nút phần thưởng trong " .. totalCheckTime .. " giây")
             while os.time() - startTime < totalCheckTime do
                 -- Kiểm tra và bấm nút phần thưởng
                 rewardTapped = rewards_live.tapRewardButton()
@@ -416,8 +399,6 @@ function runTikTokLiteAutomation()
                     local completeFound, _, _ = rewards_live.checkCompleteButton()
                     
                     if completeFound then
-                        -- Hiển thị toast hoàn thành claim
-                        toast("Hoàn thành nhận phần thưởng!")
                         return true
                     end
                     
@@ -425,13 +406,11 @@ function runTikTokLiteAutomation()
                 end
                 
                 -- Đợi đến lần kiểm tra tiếp theo
-                toast("Kiểm tra lại sau " .. checkInterval .. " giây...")
                 mSleep(checkInterval * 1000)
             end
             
             -- Nếu không tìm thấy nút phần thưởng sau khi kiểm tra đủ thời gian
             if not rewardTapped then
-                toast("Tài khoản có thể bị FAQ!", "Cảnh báo")
                 return false
             end
 
@@ -453,7 +432,6 @@ function runTikTokLiteAutomation()
                 -- Biến theo dõi thời gian của lần kiểm tra popup cuối cùng
                 local lastPopupCheckTime = 0
                 
-                toast("Bắt đầu giám sát nút Claim và Complete (không giới hạn thời gian)...")
                 -- Vòng lặp vô hạn, chỉ dừng lại khi tìm thấy nút complete
                 while not completeFound do
                     -- Kiểm tra và bấm nút Claim
@@ -477,8 +455,6 @@ function runTikTokLiteAutomation()
                         
                         -- Kiểm tra nếu có 3 lần claim liên tiếp trong khoảng thời gian dưới 20 giây
                         if #recentClaimTimes == 3 and (recentClaimTimes[3] - recentClaimTimes[1]) < 20 then
-                            -- Hiển thị toast thông báo lỗi
-                            toast("Lỗi: Something went wrong", "Cảnh báo")
                             return false  -- Dừng chương trình
                         end
                         
@@ -489,8 +465,6 @@ function runTikTokLiteAutomation()
                         completeFound, _, _ = rewards_live.checkCompleteButton()
                         
                         if completeFound then
-                            -- Hiển thị toast hoàn thành claim
-                            toast("Hoàn thành nhận phần thưởng!", "Thông báo")
                             break  -- Thoát khỏi vòng lặp khi tìm thấy nút complete
                         end
                     end
@@ -527,8 +501,6 @@ function runTikTokLiteAutomation()
                                 local completeFound, _, _ = rewards_live.checkCompleteButton()
                                 
                                 if completeFound then
-                                    -- Hiển thị toast hoàn thành claim
-                                    toast("Hoàn thành nhận phần thưởng!")
                                     return true
                                 end
                                 
@@ -575,15 +547,12 @@ function runTikTokLiteAutomation()
                     mSleep(claimCheckInterval * 1000)
                 end
                 
-                toast("Đã hoàn thành quy trình kiểm tra phần thưởng")
             else
-                toast("Không tìm thấy nút phần thưởng, kết thúc kịch bản")
             end
             
             return true
         end
     else
-        toast("Tài khoản bị chặn xem live")
         return false
     end
 end
