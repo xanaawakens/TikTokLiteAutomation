@@ -5,9 +5,8 @@ local repoOwner = "xanaawakens"
 local repoName = "TikTokLiteAutomation"
 local branch = "master"
 
--- Target directories on iPhone
+-- Target directory on iPhone
 local luaTargetDir = "/private/var/mobile/Media/TouchSprite/lua"
-local resTargetDir = "/private/var/mobile/Media/TouchSprite/res"
 
 -- Logging function
 local function nLog(text)
@@ -49,15 +48,8 @@ local function extractFilesFromGitHubHTML(folderPath)
     f:close()
     os.remove(tempFile)
     
-    -- Different pattern depending on the folder
-    local pattern
-    if folderPath == "lua" then
-        -- Only look for .lua files in lua directory
-        pattern = folderPath .. "/([^\"]+%.lua)"
-    else
-        -- Look for all file types in other directories (like res)
-        pattern = folderPath .. "/([^\"]+%.[^\"%.]+)"
-    end
+    -- Extract all files in lua directory
+    local pattern = folderPath .. "/([^\"]+)"
     
     -- Extract all matches
     local foundFiles = {}
@@ -133,14 +125,10 @@ function main()
     local luaProcessed, luaSucceeded = processDirectory("lua", luaTargetDir)
     nLog("Lua directory: Downloaded " .. luaSucceeded .. "/" .. luaProcessed .. " files")
     
-    -- Download res directory
-    local resProcessed, resSucceeded = processDirectory("res", resTargetDir)
-    nLog("Res directory: Downloaded " .. resSucceeded .. "/" .. resProcessed .. " files")
-    
     nLog("Download complete")
     
-    dialog("Download complete! Lua: " .. luaSucceeded .. "/" .. luaProcessed .. " files, Res: " .. resSucceeded .. "/" .. resProcessed .. " files", 0)
+    dialog("Download complete! Lua: " .. luaSucceeded .. "/" .. luaProcessed .. " files", 0)
 end
 
 -- Run main function
-main() 
+main()

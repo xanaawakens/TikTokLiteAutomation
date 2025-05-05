@@ -30,8 +30,6 @@ function tapLiveButton()
     local found, x, y = checkButtonLive()
     
     if found then
-        
-        -- Kiểm tra và xử lý popup trước khi bấm nút live
         toast("Kiểm tra popup trước khi bấm vào nút live")
         if utils.checkAndClosePopup() then
             toast("Đã đóng popup, tiếp tục bấm nút live sau 1 giây")
@@ -40,9 +38,7 @@ function tapLiveButton()
             toast("Không phát hiện popup, tiếp tục bấm nút live")
             mSleep(1000)
         end
-        
         -- Bấm vào vị trí đã tìm thấy
-        toast("Đang bấm vào nút xem live tại " .. x .. "," .. y)
         utils.tapWithConfig(x, y)
         return true
     else
@@ -157,7 +153,6 @@ function checkCompleteButton()
     local found, x, y = utils.findColorPattern(config.complete_button_matrix, fullScreenRegion)
     
     if found then
-        toast("Đã tìm thấy nút Complete tại " .. x .. "," .. y)
         return true, x, y
     end
     
