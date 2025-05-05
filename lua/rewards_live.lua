@@ -27,15 +27,12 @@ end
 -- Hàm bấm vào nút xem live
 function tapLiveButton()
     -- Tìm kiếm nút trước khi bấm
+    mSleep(2500)
     local found, x, y = checkButtonLive()
     
     if found then
-        toast("Kiểm tra popup trước khi bấm vào nút live")
         if utils.checkAndClosePopup() then
             toast("Đã đóng popup, tiếp tục bấm nút live sau 1 giây")
-            mSleep(1000)
-        else
-            toast("Không phát hiện popup, tiếp tục bấm nút live")
             mSleep(1000)
         end
         -- Bấm vào vị trí đã tìm thấy
@@ -49,6 +46,7 @@ end
 
 -- Hàm đợi và xác nhận đã vào được màn hình xem live
 function waitForLiveScreen(timeout)
+    mSleep(1500)
     timeout = timeout or config.timing.check_timeout
     local startTime = os.time()
     
@@ -63,7 +61,6 @@ function waitForLiveScreen(timeout)
         
         mSleep(1000) -- Kiểm tra mỗi giây
     end
-    
     toast("Không thể xác nhận màn hình live đã load")
     return false
 end

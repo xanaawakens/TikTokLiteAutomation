@@ -338,24 +338,17 @@ end
 
 -- Hàm mở TikTok Lite và thực hiện các tác vụ tự động
 function runTikTokLiteAutomation()
-    -- 1. Kiểm tra và thiết lập ban đầu
     local width, height = utils.getDeviceScreen()
     utils.initLogging()
     
-    -- 2. Kiểm tra app đã cài đặt chưa
-    if not utils.isTikTokLiteInstalled() then
-        return false
-    end
-    
-    -- 3. Mở ứng dụng TikTok Lite (chỉ mở một lần)
+    -- 1. Mở TikTok Lite
     local success = utils.openTikTokLite(false)
     
     if not success then
         return false
     end
     
-    -- 4. Đợi ứng dụng ổn định
-    mSleep(3000)  -- Tăng thời gian đợi để ứng dụng ổn định hơn
+    mSleep(3000)
     
     -- 5. Tìm và bấm vào nút xem live
     local tapped = rewards_live.tapLiveButton()
@@ -512,9 +505,9 @@ function runTikTokLiteAutomation()
                     -- Lấy kích thước màn hình một lần duy nhất
                     local screenW, screenH = getScreenSize()
                     
-                    -- Kiểm tra popup nhiệm vụ (chỉ trong 150 giây đầu)
+                    -- Kiểm tra popup nhiệm vụ (chỉ trong 250 giây đầu)
                     if firstClaimTime ~= nil and 
-                       (currentTime - firstClaimTime <= 150) and
+                       (currentTime - firstClaimTime <= 250) and
                        (currentTime - lastPopupCheckTime >= 3) then
                         
                         -- Cập nhật thời gian kiểm tra popup

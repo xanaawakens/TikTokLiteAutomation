@@ -110,7 +110,6 @@ function openTikTokLite(skipCheck)
     end
     
     -- Mở ứng dụng TikTok Lite
-    toast("Thực hiện lệnh mở TikTok...")
     local openResult = runApp(bundleID)
     
     if not openResult then
@@ -121,7 +120,6 @@ function openTikTokLite(skipCheck)
     -- Đợi app khởi động
     local waitTime = config.timing.launch_wait
     for i = 1, waitTime do
-        toast("Khởi động ứng dụng... " .. i .. "/" .. waitTime)
         mSleep(1000)
     end
     
@@ -129,8 +127,6 @@ function openTikTokLite(skipCheck)
     toast("Kiểm tra popup Add Friends sau khi mở app...")
     if checkAndCloseAddFriendsPopup() then
         toast("Đã đóng popup Add Friends")
-    else
-        toast("Không thấy popup Add Friends hoặc đã đóng tự động")
     end
     
     -- Bỏ qua kiểm tra nếu được yêu cầu
@@ -141,21 +137,21 @@ function openTikTokLite(skipCheck)
     
     -- Kiểm tra app có ở foreground không
     local isFront = isFrontApp(bundleID)
-    toast("Kiểm tra: TikTok " .. (isFront and "đang ở foreground" or "không ở foreground"))
+    -- toast("Kiểm tra: TikTok " .. (isFront and "đang ở foreground" or "không ở foreground"))
     
-    if isFront then
-        -- Kiểm tra ma trận màu để xác nhận app đã load xong
-        local loaded = checkTikTokLoadedByColor()
-        toast("Kiểm tra giao diện: " .. (loaded and "Đã load" or "Chưa load"))
+    -- if isFront then
+    --     -- Kiểm tra ma trận màu để xác nhận app đã load xong
+    --     local loaded = checkTikTokLoadedByColor()
+    --     toast("Kiểm tra giao diện: " .. (loaded and "Đã load" or "Chưa load"))
         
-        if loaded then
-            return true
-        else
-            toast("Giao diện TikTok chưa load hoàn tất")
-        end
-    else
-        toast("TikTok không ở foreground sau khi mở")
-    end
+    --     if loaded then
+    --         return true
+    --     else
+    --         toast("Giao diện TikTok chưa load hoàn tất")
+    --     end
+    -- else
+    --     toast("TikTok không ở foreground sau khi mở")
+    -- end
     
     return isFront
 end
@@ -240,37 +236,11 @@ function swipeNextVideo()
     swipeWithConfig(swipe.start_x, swipe.start_y, swipe.end_x, swipe.end_y)
 end
 
--- Tiện ích khởi tạo
--------------------
 
 -- Lấy kích thước màn hình
 function getDeviceScreen()
     local width, height = getScreenSize()
     return width, height
-end
-
--- Khởi tạo ghi log
-function initLogging()
-    if not config.logging.enabled then
-        return
-    end
-    
-    if config.logging.save_to_file then
-        local logPath = config.paths.logs
-        
-        -- Tạo thư mục log nếu chưa tồn tại
-        if not isFileExist(logPath) and type(newfolder) == "function" then
-            newfolder(logPath)
-        end
-        
-        -- Đường dẫn file log
-        local logFile = logPath .. os.date("%Y-%m-%d") .. ".log"
-        
-        -- Khởi tạo log file
-        pcall(function()
-            initLog(logFile, config.logging.level:upper())
-        end)
-    end
 end
 
 -- Hàm kiểm tra và đóng popup ở vùng màn hình cụ thể
@@ -285,16 +255,12 @@ function checkAndClosePopup()
     local startTime = os.time()
     local timeoutSeconds = 5
     
-    nLog("Bắt đầu tìm kiếm popup - Thời gian tối đa: " .. timeoutSeconds .. " giây")
-    
     -- Lặp tìm kiếm popup trong khoảng thời gian 5 giây
     while (os.time() - startTime < timeoutSeconds) do
         -- Tìm kiếm hình ảnh popup1.png trên toàn màn hình với phương pháp nhị phân hóa (kind=1)
         local x, y = findImageInRegionFuzzy(popupImage, 90, 0, 0, width, height, 0, 1)
         
         if x ~= -1 and y ~= -1 then  -- Kiểm tra đúng cách: x, y khác -1 là tìm thấy
-            nLog("Đã tìm thấy popup tại vị trí " .. x .. "," .. y .. " sau " .. (os.time() - startTime) .. " giây")
-            
             -- Tính toán điểm vuốt (từ dưới lên trên popup)
             local swipeStartX = x + 50 -- Điểm vuốt cách vị trí tìm thấy 50px theo chiều ngang
             local swipeStartY = y + 100 -- Điểm bắt đầu vuốt ở dưới popup
@@ -304,9 +270,6 @@ function checkAndClosePopup()
             -- Đảm bảo điểm vuốt nằm trong màn hình
             swipeStartY = math.min(swipeStartY, height - 10)
             swipeEndY = math.max(swipeEndY, 10)
-            
-            -- Thực hiện vuốt để đóng popup
-            nLog("Đang vuốt để đóng popup từ (" .. swipeStartX .. "," .. swipeStartY .. ") đến (" .. swipeEndX .. "," .. swipeEndY .. ")")
             
             touchDown(1, swipeStartX, swipeStartY)
             mSleep(50)
