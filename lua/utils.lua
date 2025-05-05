@@ -378,7 +378,6 @@ return {
     
     -- Khởi tạo
     getDeviceScreen = getDeviceScreen,
-    initLogging = initLogging,
     
     -- Xử lý popup
     checkAndClosePopup = checkAndClosePopup,
