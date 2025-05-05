@@ -170,7 +170,6 @@ local config = {
         bundle_id = "com.tigisoftware.ADManager",  -- Bundle ID của ADManager
         app_list_coord = {377, 1278},              -- Tọa độ để bấm vào danh sách app
         restore_button_coord = {378, 1138},        -- Tọa độ nút Restore AppData
-        tiktok_icon = "tiktok_lite_icon.png",      -- Tên file icon TikTok Lite
         backup_numbers = {1, 2, 3, 4, 5},          -- Các số backup mặc định
         max_backup_number = 50                     -- Số backup tối đa
     }
