@@ -23,56 +23,109 @@ local function makeDirectory(path)
     os.execute("mkdir -p '" .. path .. "'")
 end
 
--- Function to extract file names from GitHub HTML page
-local function extractFilesFromGitHubHTML(folderPath)
+-- Function to parse JSON response
+local function parseJSON(jsonStr)
+    -- Basic JSON parser for array of objects
+    local result = {}
+    local items = {}
+    
+    -- Strip outer brackets and split by objects
+    local content = string.match(jsonStr, "%[(.-)%]")
+    if not content then return {} end
+    
+    -- Split by objects (each starting with '{')
+    local pos = 1
+    local depth = 0
+    local start = nil
+    
+    while pos <= #content do
+        local c = string.sub(content, pos, pos)
+        
+        if c == '{' then
+            if depth == 0 then start = pos end
+            depth = depth + 1
+        elseif c == '}' then
+            depth = depth - 1
+            if depth == 0 and start then
+                local obj = string.sub(content, start, pos)
+                table.insert(items, obj)
+                start = nil
+            end
+        end
+        
+        pos = pos + 1
+    end
+    
+    -- Extract name and type from each object
+    for _, item in ipairs(items) do
+        local name = string.match(item, '"name"%s*:%s*"([^"]+)"')
+        local type = string.match(item, '"type"%s*:%s*"([^"]+)"')
+        local download_url = string.match(item, '"download_url"%s*:%s*"([^"]*)"')
+        
+        if name and type == "file" then
+            table.insert(result, {name = name, download_url = download_url})
+        end
+    end
+    
+    return result
+end
+
+-- Function to get files from GitHub API
+local function getFilesFromGitHubAPI(folderPath)
     local files = {}
-    local githubUrl = "https://github.com/" .. repoOwner .. "/" .. repoName .. "/tree/" .. branch .. "/" .. folderPath
-    local tempFile = os.tmpname() or "/tmp/github_page.html"
-
-    nLog("Fetching file list from: " .. githubUrl)
-
-    -- Download the GitHub page
-    local code, msg = ts.tsDownload(tempFile, githubUrl)
+    local apiUrl = "https://api.github.com/repos/" .. repoOwner .. "/" .. repoName .. "/contents/" .. folderPath
+    
+    if branch and branch ~= "master" and branch ~= "main" then
+        apiUrl = apiUrl .. "?ref=" .. branch
+    end
+    
+    nLog("Fetching file list from API: " .. apiUrl)
+    
+    local tempFile = os.tmpname() or "/tmp/github_api.json"
+    
+    -- Set headers for GitHub API (to avoid rate limits)
+    local headers = {
+        ["User-Agent"] = "TikTokLiteAutomation-Updater",
+        ["Accept"] = "application/vnd.github.v3+json"
+    }
+    
+    -- Download JSON from GitHub API
+    local code, msg = ts.tsDownload(tempFile, apiUrl, {["tstab"] = 1, ["mode"] = true, ["headers"] = headers})
+    
     if code ~= 200 then
-        nLog("Failed to download GitHub page: " .. msg)
+        nLog("Failed to access GitHub API: " .. (msg or "Unknown error") .. " (Code: " .. code .. ")")
         return files
     end
-
-    -- Read the HTML content
+    
+    -- Read the JSON content
     local f = io.open(tempFile, "r")
     if not f then
-        nLog("Failed to open downloaded HTML file")
+        nLog("Failed to open downloaded JSON file")
         return files
     end
-
+    
     local content = f:read("*all")
     f:close()
     os.remove(tempFile)
-
-    -- Different pattern depending on the folder
-    local pattern
-    if folderPath == "lua" then
-        -- Only look for .lua files in lua directory
-        pattern = folderPath .. "/([^\"]+%.lua)"
-    else
-        -- Look for all file types in other directories (like res)
-        pattern = folderPath .. "/([^\"]+%.[^\"%.]+)"
-    end
-
-    -- Extract all matches
-    local foundFiles = {}
-    for fileName in string.gmatch(content, pattern) do
-        if not foundFiles[fileName] and not string.match(fileName, "/") then
-            foundFiles[fileName] = true
-            files[#files + 1] = fileName
+    
+    -- Parse JSON response
+    local items = parseJSON(content)
+    
+    -- Add all files, regardless of extension
+    for _, item in ipairs(items) do
+        local fileName = item.name
+        
+        -- Chỉ thêm các mục có type là file (bỏ qua thư mục)
+        if item.name then
+            table.insert(files, fileName)
         end
     end
-
+    
     nLog("Found " .. #files .. " files in " .. folderPath)
     for i, file in ipairs(files) do
         nLog("  " .. i .. ". " .. file)
     end
-
+    
     return files
 end
 
@@ -98,12 +151,12 @@ local function downloadFile(path, targetPath)
     end
 end
 
--- Process directory using automatic file listing
+-- Process directory using GitHub API file listing
 local function processDirectory(sourceDir, targetDir)
     nLog("Processing directory: " .. sourceDir)
 
-    -- Get files from GitHub HTML page
-    local files = extractFilesFromGitHubHTML(sourceDir)
+    -- Get files from GitHub API
+    local files = getFilesFromGitHubAPI(sourceDir)
 
     if #files == 0 then
         nLog("No files found for directory: " .. sourceDir)
