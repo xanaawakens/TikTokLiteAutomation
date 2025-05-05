@@ -264,9 +264,6 @@ function findAndClickTikTokIcon()
         mSleep(2000)
         return true
     else
-        
-        -- Thử tìm kiếm lại với mẫu màu thay thế
-        -- (Mẫu này dựa trên chuỗi gốc của người dùng: 41,357,0x00000064,354,0x00000083,358,0x00000086,400,0x00000039,401,0x00000055,380,0xffffff50,395,0xfeffff67,394,0xfeffff68,368,0xffffff79,372,0xffffff)
         mainColor = 0x000000
         mainX = 41
         mainY = 357
@@ -533,6 +530,7 @@ function runTikTokLiteAutomation()
                     -- Kiểm tra popup Reward upgraded (kiểm tra liên tục)
                     local rewardX, rewardY = findImageInRegionFuzzy("popup2.png", 90, 1, 1, screenW, screenH, 0)
                     if rewardX ~= -1 and rewardY ~= -1 then
+                        toast("Đang đóng popup")
                         tap(357,1033)
                         mSleep(1000)
                     end
