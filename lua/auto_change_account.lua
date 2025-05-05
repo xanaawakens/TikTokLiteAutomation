@@ -339,7 +339,7 @@ end
 -- Hàm mở TikTok Lite và thực hiện các tác vụ tự động
 function runTikTokLiteAutomation()
     local width, height = utils.getDeviceScreen()
-    utils.initLogging()
+    -- utils.initLogging()
     
     -- 1. Mở TikTok Lite
     local success = utils.openTikTokLite(false)
