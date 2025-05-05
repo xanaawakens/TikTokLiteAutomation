@@ -99,9 +99,11 @@ local config = {
     },
 
     claim_button_matrix = {
-        {432, 1226, 0xfd1120}, {432, 1228, 0xffffff}, {432, 1248, 0xffffff},
-        {432, 1250, 0xfd0010}, {436, 1240, 0xffffff}, {442, 1233, 0xffffff},
-        {438, 1229, 0xfff7f8}, {445, 1241, 0xfd0010}, {444, 1241, 0xfd0212}
+        {249, 704, 0xfd0010}, {247, 702, 0xffffff}, {240, 699, 0xffffff},
+        {233, 709, 0xffffff}, {241, 718, 0xffffff}, {247, 714, 0xffffff},
+        {248, 710, 0xfd0010}, {518, 707, 0xfd0010}, {507, 707, 0xffffff},
+        {517, 714, 0xffffff}, {511, 718, 0xffffff}, {508, 716, 0xffffff},
+        {507, 713, 0xfd0010}
     },
 
     complete_button_matrix = {
