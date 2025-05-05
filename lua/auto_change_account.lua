@@ -590,7 +590,7 @@ function main()
         -- Cập nhật file currentbackup.txt trước khi chạy automation
         local currentFile = io.open(output_folder .. "/currentbackup.txt", "w")
         if currentFile then
-            currentFile:write(currentAccount + 1 .. "\n" .. totalAccounts)
+            currentFile:write(currentAccount .. "\n" .. totalAccounts)
             currentFile:close()
         else
             toast("Không thể cập nhật file currentbackup.txt")
@@ -603,13 +603,41 @@ function main()
         toast("Đang chạy account thứ " .. currentAccount .. "/" .. totalAccounts)
         mSleep(1000)
         
-        runTikTokLiteAutomation()
+        if runTikTokLiteAutomation() then
+            local analysisFile = io.open(output_folder .. "/analysis.txt", "a")
+            if analysisFile then
+                local currentTime = os.date("%Y-%m-%d %H:%M:%S")
+                analysisFile:write(currentAccount .. ":" .. accountName .. " successfully " .. currentTime .. "\n")
+                analysisFile:close()
+            else
+                toast("Không thể ghi vào file analysis.txt")
+            end
+        else
+            local analysisFile = io.open(output_folder .. "/analysis.txt", "a")
+            if analysisFile then
+                local currentTime = os.date("%Y-%m-%d %H:%M:%S")
+                analysisFile:write(currentAccount .. ":" .. accountName .. " failed " .. currentTime .. "\n")
+                analysisFile:close()
+            else
+                toast("Không thể ghi vào file analysis.txt")
+            end
+        end
         
         mSleep(3000)
         closeApp("*",1)
         
         -- Tăng số account sau khi chạy xong
         currentAccount = currentAccount + 1
+        
+        -- Cập nhật file currentbackup.txt sau khi tăng currentAccount
+        local currentFile = io.open(output_folder .. "/currentbackup.txt", "w")
+        if currentFile then
+            currentFile:write(currentAccount .. "\n" .. totalAccounts)
+            currentFile:close()
+        else
+            toast("Không thể cập nhật file currentbackup.txt")
+            return false
+        end
     end
     
     toast("Đã chạy xong tất cả " .. totalAccounts .. " account")
