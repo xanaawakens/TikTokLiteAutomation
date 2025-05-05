@@ -443,8 +443,9 @@ function runTikTokLiteAutomation()
                             table.remove(recentClaimTimes, 1)
                         end
                         
-                        -- Kiểm tra nếu có 3 lần claim liên tiếp trong khoảng thời gian dưới 20 giây
-                        if #recentClaimTimes == 3 and (recentClaimTimes[3] - recentClaimTimes[1]) < 20 then
+                        -- Kiểm tra nếu có 3 lần claim liên tiếp trong khoảng thời gian dưới 35 giây
+                        if #recentClaimTimes == 3 and (recentClaimTimes[3] - recentClaimTimes[1]) < 35 then
+                            toast("Khả năng lỗi Something went wrong")
                             return false  -- Dừng chương trình
                         end
                         
