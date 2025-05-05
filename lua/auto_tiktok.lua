@@ -133,8 +133,8 @@ function autoTiktok.runTikTokLiteAutomation()
                 table.remove(recentClaimTimes, 1)
             end
             
-            -- Nếu claim 3 lần liên tiếp <35s thì báo lỗi something went wrong và đổi acc
-            if #recentClaimTimes == 3 and recentClaimTimes[3] ~= nil and recentClaimTimes[1] ~= nil and (recentClaimTimes[3] - recentClaimTimes[1]) < 35 then
+            -- Nếu claim 3 lần liên tiếp <45s thì báo lỗi something went wrong và đổi acc
+            if #recentClaimTimes == 3 and recentClaimTimes[3] ~= nil and recentClaimTimes[1] ~= nil and (recentClaimTimes[3] - recentClaimTimes[1]) < 45 then
                 toast("Lỗi Something went wrong")
                 return false, "Lỗi Something went wrong"
             end
