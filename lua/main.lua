@@ -91,7 +91,14 @@ local function main()
         end
     end
     
-    toast("Đã chạy xong tất cả " .. totalAccounts .. " account")
+    -- Reset currentAccount về 1 và cập nhật file
+    local resetSuccess, resetError = changeAccount.updateCurrentAccount(1, totalAccounts)
+    if not resetSuccess then
+        toast("Không thể reset currentAccount về 1")
+        return false
+    end
+    
+    toast("Đã chạy xong tất cả " .. totalAccounts .. " account và reset về account 1")
     return true
 end
 
