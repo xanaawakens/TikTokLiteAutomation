@@ -412,7 +412,7 @@ end
 
 -- Hàm kiểm tra và đóng popup Add Friends khi mới mở app TikTok
 function utils.checkAndCloseAddFriendsPopup()
-    return utils.checkAndClosePopupByImage("popupAddFriends.png", {200, 1267})
+    return utils.checkAndClosePopupByImage("popupAddFriends.png", {80, 1270})
 end
 
 -- Hàm bấm vào nút live sau khi kiểm tra popup

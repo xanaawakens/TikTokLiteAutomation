@@ -59,7 +59,7 @@ local config = {
     
     -- Giới hạn và kiểm soát chạy
     limits = {
-        account_runtime = 600,     -- Thời gian tối đa chạy cho một tài khoản (giây)
+        account_runtime = 700,     -- Thời gian tối đa chạy cho một tài khoản (giây)
         total_runtime = 7200,      -- Thời gian tối đa chạy cho tất cả tài khoản (giây)
         max_accounts = 50,         -- Số tài khoản tối đa được xử lý
         claim_attempts = 100,      -- Số lần claim tối đa cho một tài khoản
@@ -70,7 +70,7 @@ local config = {
     -- Cài đặt thời gian (đơn vị: giây)
     timing = {
         -- Timing chung
-        launch_wait = 4,           -- Thời gian chờ sau khi mở app
+        launch_wait = 6,           -- Thời gian chờ sau khi mở app
         check_timeout = 10,        -- Thời gian tối đa để kiểm tra app đã mở
         tap_delay = 0.5,           -- Độ trễ sau mỗi lần tap
         swipe_delay = 1,           -- Độ trễ sau mỗi lần vuốt
