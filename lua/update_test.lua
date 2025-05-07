@@ -3,7 +3,7 @@ local ts = require("ts")
 -- GitHub repository information
 local repoOwner = "xanaawakens"
 local repoName = "TikTokLiteAutomation"
-local branch = "test"
+local branch = "develop"
 
 -- Target directories on iPhone
 local luaTargetDir = "/private/var/mobile/Media/TouchSprite/lua"

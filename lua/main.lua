@@ -1,6 +1,5 @@
 -- File main.lua - File chạy chính của ứng dụng TikTok Lite Automation
 -- Mô tả: File này là điểm khởi đầu của ứng dụng, quản lý luồng chạy chính và gọi các module
--- Tạo bởi: Script đã được cấu trúc lại từ mã nguồn gốc
 
 require("TSLib")
 

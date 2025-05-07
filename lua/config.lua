@@ -42,7 +42,7 @@ end
 local config = {
     -- Thông tin về cấu hình và phiên bản
     meta = {
-        version = "1.1.0",           -- Phiên bản của file cấu hình
+        version = "1.0.0",           -- Phiên bản của file cấu hình
         base_width = 750,            -- Chiều rộng màn hình chuẩn cho tọa độ
         base_height = 1334,          -- Chiều cao màn hình chuẩn cho tọa độ
         screen_width = _G.SCREEN_WIDTH, -- Chiều rộng màn hình thực tế
@@ -59,8 +59,8 @@ local config = {
     
     -- Giới hạn và kiểm soát chạy
     limits = {
-        account_runtime = 700,     -- Thời gian tối đa chạy cho một tài khoản (giây)
-        total_runtime = 7200,      -- Thời gian tối đa chạy cho tất cả tài khoản (giây)
+        account_runtime = 99999999,     -- Thời gian tối đa chạy cho một tài khoản (giây) - effectively no limit
+        total_runtime = 99999999,      -- Thời gian tối đa chạy cho tất cả tài khoản (giây) - effectively no limit
         max_accounts = 50,         -- Số tài khoản tối đa được xử lý
         claim_attempts = 100,      -- Số lần claim tối đa cho một tài khoản
         max_live_streams = 5,      -- Số live stream tối đa xem cho một tài khoản
