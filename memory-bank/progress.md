@@ -29,6 +29,7 @@
 - ✅ Account switching when current account completes tasks
 - ✅ Error logging with screenshots
 - ✅ Selective error suppression for non-critical UI elements
+- ✅ Code reuse through centralized utility functions
 
 ## In Progress
 
@@ -57,6 +58,7 @@
 - ❌ Performance analytics for optimization
 
 ### Technical Improvements
+- ✅ Code refactoring to remove duplication (implemented for swipe operations)
 - ❌ Improved color pattern detection with more fallbacks
 - ❌ Machine learning for more reliable UI detection
 - ❌ Configurable automation strategies

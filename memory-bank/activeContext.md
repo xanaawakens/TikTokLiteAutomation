@@ -87,6 +87,10 @@ The next focus areas appear to be:
   - Enhanced rewards_live.lua to properly propagate suppressNotification to all error handling calls
   - Updated auto_tiktok.lua to use suppressNotification=true where appropriate
   - Fixed bug where errors were still being logged to files even when UI notifications were suppressed
+- Refactored duplicated swipe implementations:
+  - Replaced manual swipe code in auto_tiktok.lua with calls to utils.swipeNextVideo()
+  - Updated rewards_live.switchToNextStream to use utils.swipeNextVideo() instead of custom swipe implementation
+  - Removed redundant rewards_live.checkAndClosePopup as it was just re-exporting utils.checkAndClosePopup
 
 ## Active Decisions and Considerations
 
