@@ -42,12 +42,11 @@ end
 local config = {
     -- Thông tin về cấu hình và phiên bản
     meta = {
-        version = "1.0.0",           -- Phiên bản của file cấu hình
+        version = "2.0.0",           -- Phiên bản của file cấu hình (removed backward compatibility)
         base_width = 750,            -- Chiều rộng màn hình chuẩn cho tọa độ
         base_height = 1334,          -- Chiều cao màn hình chuẩn cho tọa độ
         screen_width = _G.SCREEN_WIDTH, -- Chiều rộng màn hình thực tế
         screen_height = _G.SCREEN_HEIGHT, -- Chiều cao màn hình thực tế
-        last_updated = "2023-06-15"  -- Ngày cập nhật cuối cùng
     },
     
     -- Thông tin ứng dụng
@@ -57,7 +56,6 @@ local config = {
         version = "1.0.0"                             -- Phiên bản kịch bản
     },
     
-    -- Giới hạn và kiểm soát chạy
     limits = {
         account_runtime = 99999999,     -- Thời gian tối đa chạy cho một tài khoản (giây) - effectively no limit
         total_runtime = 99999999,      -- Thời gian tối đa chạy cho tất cả tài khoản (giây) - effectively no limit
@@ -88,7 +86,7 @@ local config = {
         -- Timing cho quá trình claim
         claim_tap_delay = 0.5,     -- Thời gian chờ sau khi tap vào nút claim (giảm xuống)
         after_claim_delay = 1,     -- Thời gian chờ sau khi claim thành công (giảm từ 2s xuống 1s)
-        popup_check_after_claim = 0.5, -- Thời gian chờ trước khi kiểm tra popup sau claim
+        popup_check_after_claim = 5, -- Thời gian chờ trước khi kiểm tra popup sau claim
         
         -- Timing cho utils.lua
         popup_detection = 5,       -- Thời gian tối đa để tìm kiếm popup (giây)
@@ -116,10 +114,10 @@ local config = {
         image_similarity = 85      -- Độ tương đồng hình ảnh
     },
     
-    -- Ma trận màu để kiểm tra các phần tử
-    -- Tất cả các ma trận màu được nhóm trong một table riêng
+    -- Ma trận màu kiểm tra các phần tử
+    -- Tất cả các ma trận màu đều được nhóm trong một bảng riêng
     color_patterns = {
-        -- Ma trận màu để kiểm tra TikTok đã load xong
+        -- Ma trận màu kiểm tra TikTok đã load xong
         tiktok_loaded = {
             {203, 1303, 0xbbbbbb},
             {204, 1307, 0xc0c0c0},
@@ -134,7 +132,7 @@ local config = {
             {545, 1307, 0xc2c2c2}
         },
         
-        -- Ma trận màu để kiểm tra nút xem live
+        -- Ma trận màu kiểm tra nút xem live
         live_button = {
             {48, 61, 0xf0f0f0},
             {49, 62, 0xffffff},
@@ -148,7 +146,7 @@ local config = {
             {53, 105, 0xffffff}
         },
     
-        -- Ma trận màu để kiểm tra đã load xong màn hình xem live
+        -- Ma trận màu kiểm tra đã load xong màn hình xem live
         in_live_screen = {
             {588, 1250, 0xff83b4},
             {614, 1250, 0xff94bf},
@@ -160,7 +158,7 @@ local config = {
             {602, 1274, 0xf34676}
         },
     
-        -- Ma trận màu cho nút phần thưởng (mẫu 1)
+        -- Ma trận màu cho nút phần thưởng (màu 1)
         reward_button_1 = {
             {46, 578, 0xff9e00},
             {80, 581, 0xfe8302},
@@ -170,7 +168,7 @@ local config = {
             {38, 631, 0xff8300}
         },
     
-        -- Ma trận màu cho nút phần thưởng (mẫu 2)
+        -- Ma trận màu cho nút phần thưởng (màu 2)
         reward_button_2 = {
             {56, 589, 0xffce00},
             {75, 591, 0xffce00},
@@ -179,6 +177,20 @@ local config = {
             {52, 600, 0xff9300},
             {63, 603, 0xffe865},
             {67, 608, 0xff9300}
+        },
+
+        -- Ma trận check xem  đã trong phần thưởng hay chưa
+        in_reward_screen = {
+            {704, 738, 0xfffdee},
+            {704, 737, 0xffeb74},
+            {706, 738, 0xfff8d0},
+            {708, 738, 0xfff2a6},
+            {715, 740, 0xffee8b},
+            {715, 742, 0xffffff},
+            {723, 745, 0xffed80},
+            {726, 751, 0xffffff},
+            {730, 751, 0xffeb74},
+            {729, 757, 0xffffff}            
         },
     
         -- Ma trận màu cho nút claim
@@ -261,17 +273,17 @@ local config = {
         ad_close_button = 0xFFFFFF   -- Màu nút đóng quảng cáo
     },
     
-    -- Đường dẫn lưu trữ
-    paths = {
-        screenshots = "/var/mobile/Media/TouchSprite/screenshots/", -- Đường dẫn ảnh chụp màn hình
-        logs = "/var/mobile/Media/TouchSprite/logs/",  -- Đường dẫn lưu file log
-        output = "/var/mobile/Media/TouchSprite/output/" -- Đường dẫn lưu kết quả
-    },
+    -- -- Đường dẫn lưu trữ
+    -- paths = {
+    --     screenshots = "/var/mobile/Media/TouchSprite/screenshots/", -- Đường dẫn định chụp màn hình
+    --     logs = "/var/mobile/Media/TouchSprite/logs/",  -- Đường dẫn lưu file log
+    --     output = "/var/mobile/Media/TouchSprite/output/" -- Đường dẫn lưu kết quả
+    -- },
     
     -- Cài đặt ghi log
     logging = {
         enabled = true,           -- Bật/tắt ghi log
-        level = "info",           -- Mức độ ghi log (debug, info, warn, error)
+        level = "info",           -- Mức ghi log (debug, info, warn, error)
         save_to_file = true,      -- Lưu log vào file
         show_on_screen = true,    -- Hiển thị log trên màn hình
         log_file_format = "tiktok_lite_%Y%m%d_%H%M%S.log", -- Định dạng tên file log
@@ -288,13 +300,6 @@ local config = {
         backup_numbers = {1, 2, 3, 4, 5},          -- Các số backup mặc định
         max_backup_number = 50,                    -- Số backup tối đa
         account_select_coord = {scaleCoord(356, 478)}, -- Tọa độ để chọn tài khoản
-        
-        -- Các đường dẫn phục vụ cho module change_account
-        paths = {
-            input_folder = "/private/var/mobile/Library/ADManager",  -- Thư mục chứa dữ liệu ADManager
-            output_folder = "/private/var/mobile/Media/TouchSprite/lua", -- Thư mục output cho script
-            imported_backups = "/private/var/mobile/Library/ADManager/ImportedBackups.plist" -- File cấu hình backups
-        }
     },
 
     -- Đường dẫn hình ảnh
@@ -310,22 +315,13 @@ local config = {
 
     -- Tọa độ đóng popup
     popup_close = {
-        add_friends = {scaleCoord(80, 1270)},  -- Tọa độ đóng popup Add Friends
+        add_friends = {scaleCoord(90, 1270)},  -- Tọa độ đóng popup Add Friends
         reward = {scaleCoord(357, 1033)},      -- Tọa độ đóng popup Reward
         mission = {scaleCoord(375, 1059)},     -- Tọa độ đóng popup Mission
         general = nil                          -- Sử dụng vuốt thay vì tọa độ cụ thể
     }
 }
 
--- Tương thích ngược với mã cũ
--- Giữ lại các tên cũ cho các ma trận màu để mã cũ vẫn hoạt động
-config.tiktok_matrix = config.color_patterns.tiktok_loaded
-config.live_matrix = config.color_patterns.live_button
-config.in_live_matrix = config.color_patterns.in_live_screen
-config.reward_button_matrix_1 = config.color_patterns.reward_button_1
-config.reward_button_matrix_2 = config.color_patterns.reward_button_2
-config.claim_button_matrix = config.color_patterns.claim_button
-config.complete_button_matrix = config.color_patterns.complete_button
 
 -- Cập nhật config.timing để thêm các giá trị bị hardcode
 config.timing.popup_check_interval = config.timing.popup_check_delay or 0.2  -- Thời gian giữa các lần kiểm tra popup

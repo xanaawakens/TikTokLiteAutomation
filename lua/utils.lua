@@ -204,7 +204,7 @@ end
 function utils.checkTikTokLoadedByColor()
     -- Sử dụng vùng tìm kiếm nếu được cấu hình
     local region = config.search_regions and config.search_regions.tiktok_loaded
-    local success, result, error = utils.findColorPattern(config.tiktok_matrix, region)
+    local success, result, error = utils.findColorPattern(config.color_patterns.tiktok_loaded, region)
     
     if success then
         logger.info("TikTok Lite đã load thành công")
@@ -218,67 +218,37 @@ end
 ------------------------------
 
 -- Mở ứng dụng TikTok Lite và đợi cho đến khi tải xong
-function utils.openTikTokLite(skipCheck)
+function utils.openTikTokLite(verify)
+    -- Mở TikTok Lite bằng bundle ID từ cấu hình
     local bundleID = config.app.bundle_id
-    local appName = config.app.name
     
-    logger.info("Đang mở " .. appName)
-    
-    -- Kiểm tra app có đang chạy không trước khi mở
-    local isRunning = appIsRunning(bundleID)
-    logger.debug("Kiểm tra: TikTok " .. (isRunning and "đang chạy" or "không chạy"))
-    
-    -- Đóng app nếu đang chạy để mở lại từ đầu
-    if isRunning then
-        logger.debug("Đóng TikTok đang chạy...")
-        local closeSuccess, closeError = safeExecute(closeApp, bundleID)
-        if not closeSuccess then
-            return false, "Lỗi khi đóng app: " .. closeError
-        end
+    -- Đóng TikTok Lite nếu đang chạy
+    if appIsRunning(bundleID) then
+        closeApp(bundleID)
+        logger.debug("Đã đóng TikTok Lite đang chạy, chờ " .. TIMING.APP_CLOSE_WAIT .. "s")
         mSleep(TIMING.APP_CLOSE_WAIT * 1000)
     end
     
-    -- Mở ứng dụng TikTok Lite
-    local openSuccess, openResult = safeExecute(runApp, bundleID)
+    -- Mở TikTok Lite
+    logger.info("Đang mở TikTok Lite...")
+    runApp(bundleID)
+    mSleep(config.timing.launch_wait * 1000)
     
-    if not openSuccess or not openResult then
-        logger.error("Lỗi: Không thể mở TikTok Lite")
-        return false, "Không thể mở TikTok Lite: " .. (openSuccess and "App không tồn tại" or openResult)
-    end
-    
-    -- Đợi app khởi động
-    local waitTime = config.timing.launch_wait
-    for i = 1, waitTime do
-        mSleep(1000)
-    end
-    
-    -- Kiểm tra và đóng popup Add Friends nếu xuất hiện
-    logger.debug("Kiểm tra popup Add Friends sau khi mở app...")
-    local popupClosed, popupError = utils.checkAndClosePopupByImage(config.images.popup.add_friends, config.popup_close.add_friends)
-    if popupClosed then
-        logger.debug("Đã đóng popup Add Friends")
-    elseif popupError then
-        logger.warning("Lỗi khi xử lý popup: " .. popupError)
-    end
-    
-    -- Bỏ qua kiểm tra nếu được yêu cầu
-    if skipCheck then
-        logger.debug("Bỏ qua kiểm tra, coi như đã mở thành công")
-        return true, nil
-    end
-    
-    -- Kiểm tra app có ở foreground không
-    local isFront = isFrontApp(bundleID)
-    if not isFront then
-        return false, "TikTok không ở foreground sau khi mở"
-    end
-    
-    -- Kiểm tra giao diện đã load
-    if config.check_ui_after_launch then
-        local loaded, loadError = utils.checkTikTokLoadedByColor()
-        if not loaded then
-            return false, loadError or "Giao diện TikTok chưa load hoàn tất"
+    -- Xác minh đã mở thành công nếu cần
+    if verify then
+        local region = config.search_regions.tiktok_loaded
+        logger.debug("Kiểm tra TikTok đã mở...")
+        local success, result, error = utils.findColorPattern(config.color_patterns.tiktok_loaded, region)
+        
+        if not success then
+            return false, "Lỗi khi kiểm tra TikTok đã mở: " .. (error or "")
         end
+        
+        if not result then
+            return false, "Không thể xác nhận TikTok đã mở"
+        end
+        
+        logger.info("Đã xác nhận TikTok đã mở thành công")
     end
     
     return true, nil
@@ -314,7 +284,7 @@ function utils.isTikTokLiteInstalled()
     
     -- Chỉ trả về kết quả dựa trên việc kiểm tra, không mở app để thử
     local appExists = appExist(bundleID)
-    logger.debug("Kiểm tra: TikTok Lite " .. (appExists and "đã được cài đặt" or "chưa được cài đặt"))
+    -- logger.debug("Kiểm tra: TikTok Lite " .. (appExists and "đã được cài đặt" or "chưa được cài đặt"))
     
     if appExists then
         return true, nil
@@ -368,6 +338,27 @@ end
 
 -- Tiện ích thao tác màn hình
 -----------------------------
+
+-- Hàm chuyển đổi bất kỳ giá trị nào thành chuỗi an toàn
+function utils.safeToString(value)
+    if value == nil then
+        return "nil"
+    elseif type(value) == "string" then
+        return value
+    elseif type(value) == "number" or type(value) == "boolean" then
+        return tostring(value)
+    elseif type(value) == "table" then
+        -- Không dùng pcall và đệ quy phức tạp để tránh lỗi stack overflow
+        -- Trả về biểu diễn đơn giản của table
+        return "{table}"
+    elseif type(value) == "function" then
+        return "{function}"
+    elseif type(value) == "userdata" or type(value) == "thread" then
+        return "{" .. type(value) .. "}"
+    else
+        return "{unknown type: " .. type(value) .. "}"
+    end
+end
 
 -- Thực hiện tap với độ trễ từ cấu hình
 function utils.tapWithConfig(x, y, description, customDelay)
@@ -570,35 +561,38 @@ function utils.retryOperation(operationFunc, maxRetries, delayMs, retryCondition
         if success then
             -- Kiểm tra xem có cần thử lại không
             if not retryCondition(result) then
-                logger.debug("Thao tác thành công sau " .. attempt .. " lần thử")
+                -- Tránh gọi logger để không tạo vòng đệ quy
+                -- logger.debug("Thao tác thành công sau " .. attempt .. " lần thử")
                 return true, result, nil
             else
                 -- Lưu lỗi từ lần thử hiện tại
                 lastError = error
-                logger.warning("Thao tác thất bại ở lần thử " .. attempt .. "/" .. maxRetries .. 
-                               ": " .. (error or "Không có chi tiết lỗi"))
+                -- Tránh gọi logger và safeToString ở đây
+                -- logger.warning("Thao tác thất bại ở lần thử " .. attempt .. "/" .. maxRetries .. 
+                --                ": " .. (error or "Không có chi tiết lỗi"))
                 
                 -- Nếu chưa phải lần thử cuối, đợi một khoảng thời gian
                 if attempt < maxRetries then
-                    logger.debug("Đợi " .. delayMs .. "ms trước khi thử lại...")
+                    -- logger.debug("Đợi " .. delayMs .. "ms trước khi thử lại...")
                     mSleep(delayMs)
                 end
             end
         else
             -- Lỗi runtime trong hàm thực thi
             lastError = result -- Trong trường hợp pcall, error message nằm trong result
-            logger.error("Lỗi runtime ở lần thử " .. attempt .. "/" .. maxRetries .. ": " .. tostring(result))
+            -- Tránh gọi logger và tostring ở đây
+            -- logger.error("Lỗi runtime ở lần thử " .. attempt .. "/" .. maxRetries .. ": " .. tostring(result))
             
             -- Nếu chưa phải lần thử cuối, đợi một khoảng thời gian
             if attempt < maxRetries then
-                logger.debug("Đợi " .. delayMs .. "ms trước khi thử lại...")
+                -- logger.debug("Đợi " .. delayMs .. "ms trước khi thử lại...")
                 mSleep(delayMs)
             end
         end
     end
     
     -- Nếu đã thử hết số lần và vẫn thất bại
-    logger.error("Thao tác thất bại sau " .. maxRetries .. " lần thử")
+    -- logger.error("Thao tác thất bại sau " .. maxRetries .. " lần thử")
     return false, nil, lastError or "Thao tác thất bại sau tất cả các lần thử"
 end
 
@@ -633,7 +627,7 @@ function utils.writeFileAtomic(filePath, content, backupFirst)
         backupFile:write(origContent)
         backupFile:close()
         
-        logger.debug("Đã tạo backup tại: " .. backupPath)
+        -- logger.debug("Đã tạo backup tại: " .. backupPath)
     end
     
     -- File tạm thời
@@ -653,7 +647,7 @@ function utils.writeFileAtomic(filePath, content, backupFirst)
     end)
     
     if not success then
-        logger.error("Lỗi khi ghi vào file tạm: " .. tostring(writeError))
+        -- logger.error("Lỗi khi ghi vào file tạm: " .. tostring(writeError))
         os.remove(tempPath) -- Xóa file tạm
         return false, nil, "Lỗi khi ghi file: " .. tostring(writeError)
     end
@@ -662,7 +656,7 @@ function utils.writeFileAtomic(filePath, content, backupFirst)
     local renameSuccess = os.rename(tempPath, filePath)
     
     if not renameSuccess then
-        logger.error("Không thể rename file tạm thành file thật")
+        -- logger.error("Không thể rename file tạm thành file thật")
         
         -- Phương pháp thay thế nếu rename thất bại
         local backupSuccess = false
@@ -692,7 +686,7 @@ function utils.writeFileAtomic(filePath, content, backupFirst)
         end
     end
     
-    logger.debug("Đã ghi file thành công: " .. filePath)
+    -- logger.debug("Đã ghi file thành công: " .. filePath)
     return true, filePath, nil
 end
 
@@ -726,12 +720,37 @@ function utils.readFileSafely(filePath, defaultContent)
         return result == nil
     end
     
-    -- Thử đọc file với cơ chế thử lại
-    local success, content, error = utils.retryOperation(readFunc, 3, 500, retryCondition)
+    -- Thử đọc file với cơ chế thử lại - gọi trực tiếp thay vì qua retryOperation
+    -- local success, content, error = utils.retryOperation(readFunc, 3, 500, retryCondition)
+    
+    -- Triển khai trực tiếp logic của retryOperation để tránh circular dependency
+    local maxRetries = 3
+    local delayMs = 500
+    local success = false
+    local content = nil
+    local error = nil
+    
+    for attempt = 1, maxRetries do
+        local pcallSuccess, result = pcall(readFunc)
+        
+        if pcallSuccess then
+            if result ~= nil then
+                success = true
+                content = result
+                break
+            end
+        else
+            error = result
+        end
+        
+        if attempt < maxRetries then
+            mSleep(delayMs)
+        end
+    end
     
     if not success then
         if defaultContent ~= nil then
-            logger.warning("Không thể đọc file " .. filePath .. ", sử dụng nội dung mặc định")
+            -- logger.warning("Không thể đọc file " .. filePath .. ", sử dụng nội dung mặc định")
             return true, defaultContent, nil
         else
             return false, nil, error or "Không thể đọc file sau nhiều lần thử"
@@ -769,6 +788,7 @@ return {
     
     -- Tiện ích khác
     safeExecute = safeExecute,
+    safeToString = utils.safeToString,
     
     -- Xử lý lỗi và retry
     retryOperation = utils.retryOperation,

@@ -10,16 +10,44 @@ local fileManager = require("file_manager") -- Thêm module quản lý file mớ
 
 local autoTiktok = {}
 
+-- Hàm safeToString đơn giản để tránh phụ thuộc vào utils.safeToString
+local function safeToString(value)
+    if value == nil then
+        return "nil"
+    elseif type(value) == "string" then
+        return value
+    elseif type(value) == "number" or type(value) == "boolean" then
+        return tostring(value)
+    elseif type(value) == "table" then
+        return "{table}"
+    elseif type(value) == "function" then
+        return "{function}"
+    elseif type(value) == "userdata" or type(value) == "thread" then
+        return "{" .. type(value) .. "}"
+    else
+        return "{unknown type: " .. type(value) .. "}"
+    end
+end
+
 -- Khởi tạo và mở ứng dụng TikTok Lite
 local function initializeApp()
     -- Mở TikTok Lite
     local success, error = utils.openTikTokLite(false)
     
     if not success then
-        return false, "Không thể mở TikTok Lite: " .. (error or "")
+        return false, "Không thể mở TikTok Lite: " .. safeToString(error or "")
     end
     
     mSleep(3000)
+    
+    -- Kiểm tra và đóng popup Add Friends nếu xuất hiện
+    local popupClosed, popupError = utils.checkAndCloseAddFriendsPopup()
+    if popupClosed then
+        logger.info("Đã đóng popup Add Friends sau khi mở ứng dụng")
+        -- Đợi một chút sau khi đóng popup
+        mSleep(config.timing.after_popup_close * 1000)
+    end
+    
     return true, nil
 end
 
@@ -110,33 +138,50 @@ function autoTiktok.runTikTokLiteAutomation()
     mSleep(config.timing.ui_stabilize * 1000)
     
     -- 4. Vuốt để chuyển sang 1 live stream khác (tránh live stream đầu tiên)
-    -- local switchSuccess, switchError = rewards_live.switchToNextStream(1)
-    -- if not switchSuccess then
-    --     return false, switchError
-    -- end
-    local startY = math.floor(height * 0.9)  
-    local endY = math.floor(height * 0.6)   
-    local midX = math.floor(width / 2)     
+    local midX = math.floor(width / 2)       -- Giữa màn hình theo chiều ngang
+    local startY = math.floor(height * 0.9)  -- Gần dưới cùng màn hình  
+    local endY = math.floor(height * 0.6)    -- Khoảng giữa màn hình
+    
+    -- Vuốt trực tiếp bằng touchDown, touchMove, touchUp
     touchDown(1, midX, startY)
     mSleep(100)
     for i = 1, 10 do
         local moveY = startY - (i * (startY - endY) / 10)
         touchMove(1, midX, moveY)
-        mSleep(10)
+        mSleep(20)
     end
     touchUp(1, midX, endY)
-    logger.info("Vuốt xuống stream khác...")
-
-    touchDown(1, midX, startY)
-    mSleep(100)
-    for i = 1, 10 do
-        local moveY = startY - (i * (startY - endY) / 10)
-        touchMove(1, midX, moveY)
-        mSleep(10)
-    end
-    touchUp(1, midX, endY)
-
+    
     mSleep(3000)
+    logger.info("Vuốt xuống stream khác...")
+    
+    -- Kiểm tra xem live stream mới đã load xong chưa
+    local liveLoaded, loadError = rewards_live.waitForLiveScreen(8)
+    if not liveLoaded then
+        logger.warning("Không thể xác nhận live stream đã load sau khi vuốt: " .. safeToString(loadError or ""))
+        -- Thử vuốt lần nữa nếu live stream chưa load
+    end
+    
+    -- Second swipe to ensure we're in a good live stream
+    touchDown(1, midX, startY)
+    mSleep(100)
+    for i = 1, 10 do
+        local moveY = startY - (i * (startY - endY) / 10)
+        touchMove(1, midX, moveY)
+        mSleep(20)
+    end
+    touchUp(1, midX, endY)
+    
+    mSleep(3000)
+    
+    -- Kiểm tra xem live stream thứ hai đã load xong chưa
+    liveLoaded, loadError = rewards_live.waitForLiveScreen(8)
+    if not liveLoaded then
+        logger.warning("Không thể xác nhận live stream thứ hai đã load sau khi vuốt: " .. safeToString(loadError or ""))
+        return false, "Không thể xác nhận live stream đã load sau khi vuốt"
+    else
+        logger.info("Đã xác nhận live stream đã load thành công")
+    end
     
     -- 5. Check và click vào nút phần thưởng
     local rewardTapped = false
@@ -162,10 +207,60 @@ function autoTiktok.runTikTokLiteAutomation()
         return false, rewardError or "Không tìm thấy nút phần thưởng sau nhiều lần thử"
     end
     
-    -- 6. Chờ màn hình giao diện nhiệm vụ phần thưởng load xong
-    local waitTime = config.timing.reward_click_wait or 8
-    logger.info("Chờ " .. waitTime .. "s để giao diện phần thưởng load...")
-    mSleep(waitTime * 1000)
+    -- Kiểm tra và đợi cho màn hình phần thưởng load
+    logger.info("Kiểm tra xem đã vào màn hình phần thưởng chưa...")
+    local inRewardScreen, rewardScreenError = rewards_live.waitForRewardScreen()
+    if not inRewardScreen then
+        logger.warning("Không thể xác nhận đang ở màn hình phần thưởng: " .. safeToString(rewardScreenError or ""))
+        logger.info("Thực hiện quy trình khôi phục khi không load được màn hình phần thưởng...")
+        
+        -- 1. Bấm vào tọa độ 444, 444
+        logger.info("Bấm vào tọa độ (444, 444) để thoát khỏi trạng thái hiện tại")
+        tap(444, 444)
+        mSleep(2000)
+        
+        -- 2. Thực hiện vuốt để chuyển sang stream mới
+        logger.info("Vuốt để chuyển sang stream mới...")
+        touchDown(1, midX, startY)
+        mSleep(100)
+        for i = 1, 10 do
+            local moveY = startY - (i * (startY - endY) / 10)
+            touchMove(1, midX, moveY)
+            mSleep(20)
+        end
+        touchUp(1, midX, endY)
+        mSleep(3000)
+        
+        -- 3. Kiểm tra xem đã trong màn hình live chưa
+        logger.info("Kiểm tra xem đã load được màn hình live chưa...")
+        local liveScreenLoaded, liveError = rewards_live.waitForLiveScreen(8)
+        if not liveScreenLoaded then
+            logger.warning("Không thể xác nhận đã vào màn hình live sau khi khôi phục: " .. safeToString(liveError or ""))
+            return false, "Không thể khôi phục màn hình live sau khi gặp lỗi"
+        end
+        
+        logger.info("Đã vào lại màn hình live thành công")
+        
+        -- 4. Bấm vào nút phần thưởng lại
+        logger.info("Tìm và bấm vào nút phần thưởng lần nữa...")
+        local rewardRetapped, retapError = rewards_live.tapRewardButton()
+        if not rewardRetapped then
+            logger.warning("Không thể tìm thấy nút phần thưởng sau khi khôi phục: " .. safeToString(retapError or ""))
+            return false, "Không thể tìm lại nút phần thưởng sau khi khôi phục"
+        end
+        
+        -- 5. Kiểm tra lại màn hình phần thưởng
+        logger.info("Kiểm tra lại màn hình phần thưởng...")
+        inRewardScreen, rewardScreenError = rewards_live.waitForRewardScreen()
+        if not inRewardScreen then
+            logger.warning("Vẫn không thể vào màn hình phần thưởng sau khi khôi phục: " .. safeToString(rewardScreenError or ""))
+            return false, "Không thể vào màn hình phần thưởng sau khi khôi phục"
+        end
+        
+        logger.info("Đã vào màn hình phần thưởng thành công sau khi khôi phục!")
+    else
+        logger.info("Đã vào màn hình phần thưởng thành công!")
+    end
     
     -- 7. Thực hiện kéo xuống bên dưới (vuốt từ dưới đi lên)
     local startY = math.floor(height * 0.9)   -- Gần dưới cùng màn hình
@@ -185,7 +280,7 @@ function autoTiktok.runTikTokLiteAutomation()
     mSleep(2000)
     
     -- 8. Check nút complete lần 1
-    local completeFound, _, _, _ = rewards_live.checkCompleteButton()
+    local completeFound, _, _, _ = rewards_live.checkCompleteButton(true)
     
     if completeFound then
         return true, "Hoàn thành nhiệm vụ thành công ngay sau lần đầu kiểm tra"
@@ -205,7 +300,7 @@ function autoTiktok.runTikTokLiteAutomation()
     while true do
         -- Kiểm tra và bấm nút Claim
         local startTime = os.time()
-        claimFound, claimError = rewards_live.tapClaimButton()
+        claimFound, claimError = rewards_live.tapClaimButton(true)
         
         if claimFound then
             consecutiveFailures = 0
@@ -226,7 +321,7 @@ function autoTiktok.runTikTokLiteAutomation()
             handlePopupsAfterClaim()
             
             -- Kiểm tra nút complete sau khi claim thành công
-            completeFound, _, _, _ = rewards_live.checkCompleteButton()
+            completeFound, _, _, _ = rewards_live.checkCompleteButton(true)
             
             if completeFound then
                 return true, "Hoàn thành nhiệm vụ thành công sau khi claim"
@@ -237,10 +332,10 @@ function autoTiktok.runTikTokLiteAutomation()
             logger.info("Đợi 10s và kiểm tra xem nút claim còn hiện diện không...")
             mSleep(10000)
             
-            local stillClaimButton, _, _, _ = rewards_live.checkClaimButton()
+            local stillClaimButton, _, _, _ = rewards_live.checkClaimButton(true)
             if stillClaimButton then
-                logger.warning("Lỗi: Nút claim vẫn còn sau 10s - Something went wrong")
-                return false, "Lỗi Something went wrong: Nút claim vẫn hiện diện sau khi đã claim 10s"
+                logger.warning("Lỗi: Something went wrong")
+                return false, "Lỗi Something went wrong"
             end
         else
             -- Tăng số lần thất bại liên tiếp
@@ -250,37 +345,58 @@ function autoTiktok.runTikTokLiteAutomation()
             if consecutiveFailures > 5 then
                 -- Nếu không tìm thấy claim sau nhiều lần, tăng khoảng cách để giảm tải CPU
                 adaptiveInterval = math.min(3, claimCheckInterval + 0.5 * math.floor(consecutiveFailures / 5))
-                logger.debug("Điều chỉnh khoảng thời gian kiểm tra claim lên " .. adaptiveInterval .. "s sau " .. consecutiveFailures .. " lần thất bại")
+                logger.debug("Điều chỉnh khoảng thời gian kiểm tra claim lên " .. adaptiveInterval .. "s sau " .. consecutiveFailures .. " lần thất bại", true)
             end
         end
         
         -- Xử lý stream kết thúc (kiểm tra hiệu quả hơn sau nhiều lần không tìm thấy claim)
         if lastClaimFoundTime ~= nil and os.time() - lastClaimFoundTime >= 15 then
             -- Kiểm tra nút phần thưởng - nếu có thì phiên live đã kết thúc
-            local rewardFound, rx, ry, _ = rewards_live.checkRewardButton()
+            local rewardFound, rx, ry, _ = rewards_live.checkRewardButton(true)
             
             if rewardFound then
                 logger.info("Tìm thấy nút phần thưởng - phiên live hiện tại đã kết thúc")
                 
                 -- Vuốt để chuyển sang live stream khác
                 logger.info("Vuốt xuống stream khác...")
-
+                
+                -- Thực hiện vuốt trực tiếp
                 touchDown(1, midX, startY)
                 mSleep(100)
                 for i = 1, 10 do
                     local moveY = startY - (i * (startY - endY) / 10)
                     touchMove(1, midX, moveY)
-                    mSleep(10)
+                    mSleep(20)
                 end
                 touchUp(1, midX, endY)
                 
                 mSleep(2000)
                 
+                -- Kiểm tra xem live stream mới đã load xong chưa
+                local streamLoaded, streamError = rewards_live.waitForLiveScreen(8, true)
+                if not streamLoaded then
+                    logger.warning("Không thể xác nhận live stream đã load sau khi chuyển stream: " .. safeToString(streamError or ""))
+                    goto continue_main_loop
+                else
+                    logger.info("Đã xác nhận live stream mới đã load thành công")
+                end
+                
                 -- Tìm và bấm vào nút phần thưởng
                 logger.info("Tìm và bấm vào nút phần thưởng ở stream mới...")
-                local rewardPressed, rewardError = rewards_live.tapRewardButton()
+                local rewardPressed, rewardError = rewards_live.tapRewardButton(true)
                 
                 if rewardPressed then
+                    -- Kiểm tra và đợi cho màn hình phần thưởng load
+                    logger.info("Kiểm tra xem đã vào màn hình phần thưởng ở stream mới chưa...")
+                    local inRewardScreen, rewardScreenError = rewards_live.waitForRewardScreen(nil, true)
+                    if not inRewardScreen then
+                        logger.warning("Không thể xác nhận đang ở màn hình phần thưởng ở stream mới")
+                        -- Skip to next iteration of the while loop
+                        goto continue_main_loop
+                    end
+                    
+                    logger.info("Đã vào màn hình phần thưởng thành công ở stream mới!")
+                    
                     -- Chờ giao diện phần thưởng load (giảm xuống)
                     mSleep((config.timing.reward_click_wait * 0.75) * 1000)
                     
@@ -290,14 +406,14 @@ function autoTiktok.runTikTokLiteAutomation()
                     for i = 1, 10 do
                         local moveY = startY - (i * (startY - endY) / 10)
                         touchMove(1, midX, moveY)
-                        mSleep(10)
+                        mSleep(20)
                     end
                     touchUp(1, midX, endY)
                     
                     mSleep(1500) -- giảm từ 2000ms xuống 1500ms
                     
                     -- Kiểm tra nút complete
-                    completeFound, _, _, _ = rewards_live.checkCompleteButton()
+                    completeFound, _, _, _ = rewards_live.checkCompleteButton(true)
                     
                     if completeFound then
                         return true, "Hoàn thành nhiệm vụ thành công"
@@ -308,7 +424,7 @@ function autoTiktok.runTikTokLiteAutomation()
                     -- Reset lại số lần thất bại liên tiếp
                     consecutiveFailures = 0
                 else
-                    logger.warning("Không tìm thấy nút phần thưởng ở stream mới")
+                    logger.warning("Không tìm thấy nút phần thưởng ở stream mới", true)
                 end
             end
         end
@@ -325,6 +441,8 @@ function autoTiktok.runTikTokLiteAutomation()
         if elapsedTime < adaptiveInterval then
             mSleep((adaptiveInterval - elapsedTime) * 1000)
         end
+        
+        ::continue_main_loop::
     end
     
     return true, "Hoàn thành nhiệm vụ thành công"

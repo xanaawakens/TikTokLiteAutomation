@@ -1,3 +1,8 @@
+<!-- 
+  activeContext.md - What we're currently working on
+  This file contains information about current focus, recent changes, and next steps
+-->
+
 # Active Context
 
 ## Current Focus
@@ -33,6 +38,7 @@ From the screenshots:
 3. **Logging**: Assessing the current logging system for improvements in error diagnosis
 4. **Account Management**: Exploring optimizations for account switching and management
 5. **New Reward Types**: Identifying additional reward mechanisms that could be automated
+6. **Version Control Protocol**: Implemented strict rule that Git operations (commits/pushes) must only be performed with explicit user instruction
 
 ## Current Challenges
 
@@ -64,4 +70,47 @@ The next focus areas appear to be:
 2. Document the existing codebase thoroughly
 3. Identify areas for improvement or extension
 4. Design enhancements for error recovery and logging
-5. Plan for additional reward automation implementations 
+5. Plan for additional reward automation implementations
+
+## Recent Changes
+
+- Removed time limits by setting account_runtime and total_runtime to effectively unlimited values
+- Removed backward compatibility code for old color pattern names
+- Fixed Vietnamese text encoding issues in config.lua comments
+- Fixed account reset mechanism to ensure the script correctly resets to account 1 after processing all accounts
+- Added safety mechanisms to prevent infinite loops and ensure account state is reset properly
+- Added critical project rule: Git operations require explicit user instruction before execution
+- Added suppressNotification parameter to checkClaimButton and tapClaimButton to hide notifications when claim button not found
+- Enhanced error suppression to completely silence both UI notifications and log file entries:
+  - Updated logger.lua to add a suppress parameter that prevents both screen and file logging
+  - Modified error_handler.lua to pass the suppress parameter through to the logger
+  - Enhanced rewards_live.lua to properly propagate suppressNotification to all error handling calls
+  - Updated auto_tiktok.lua to use suppressNotification=true where appropriate
+  - Fixed bug where errors were still being logged to files even when UI notifications were suppressed
+- Added reward screen verification after tapping reward button:
+  - Created new waitForRewardScreen function in rewards_live.lua to verify we're on the reward screen
+  - Added verification step in auto_tiktok.lua after tapping reward button
+  - Enhanced error handling to skip to next stream if reward screen verification fails
+- Replaced utils.swipeNextVideo() with direct touch-based swipe implementation:
+  - Implemented direct touchDown/touchMove/touchUp swipe in rewards_live.switchToNextStream
+  - Updated all swipe operations in auto_tiktok.lua to use direct swipe implementation
+  - Fixed issue with swiping in live stream screen not working correctly
+- Added live stream verification after swiping:
+  - Added waitForLiveScreen verification checks after each swipe operation
+  - Implemented error handling to retry or abort if live stream doesn't load
+  - Added informative log messages about live stream loading status
+- Added recovery mechanism when reward screen fails to load:
+  - Implemented fallback tap at coordinates (444, 444) to exit problematic state
+  - Added forced swipe to a new stream when in error state
+  - Implemented verification of live screen after recovery
+  - Added retry of reward button tap and screen verification
+  - Enhanced error handling with detailed log messages
+
+## Active Decisions and Considerations
+
+- The script should work reliably across multiple accounts without manual intervention
+- User experience should be smooth with clear logging and status updates
+- After processing all accounts, the system should properly reset to account 1 for the next run
+- The system should gracefully handle edge cases and errors
+- Version control operations (commit/push) will only be performed when explicitly instructed
+- Error notifications should be completely suppressed for expected "not found" scenarios (especially for claim buttons) 
