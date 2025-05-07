@@ -264,7 +264,7 @@ function rewardsLive.tapClaimButton()
     local success, error = tapButton(
         rewardsLive.checkClaimButton,
         function(x, y)
-            local tapSuccess, _, tapError = utils.tapWithConfig(x, y, "nút claim")
+            local tapSuccess, _, tapError = utils.tapWithConfig(x, y, "nút claim", config.timing.claim_tap_delay)
             logger.info("Claim thành công!")
             return tapSuccess, nil, tapError
         end,
