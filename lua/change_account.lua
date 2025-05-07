@@ -305,6 +305,20 @@ function changeAccount.restoreAccount()
 
     tap(restoreX, restoreY)
     mSleep(1000)
+    
+    -- Lấy thông tin tài khoản hiện tại và tổng số tài khoản
+    local currentAccount, totalAccounts = changeAccount.getCurrentAccount()
+    
+    -- Tăng số account ngay sau khi restore
+    toast("Tăng số account lên " .. (currentAccount + 1) .. "/" .. totalAccounts)
+    currentAccount = currentAccount + 1
+    
+    -- Cập nhật file currentbackup.txt sau khi tăng currentAccount
+    local updateSuccess, updateError = changeAccount.updateCurrentAccount(currentAccount, totalAccounts)
+    if not updateSuccess then
+        toast("Không thể cập nhật file currentbackup.txt: " .. (updateError or ""))
+        -- Tiếp tục thực hiện mặc dù có lỗi
+    end
 
     return true
 end

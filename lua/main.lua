@@ -80,15 +80,20 @@ local function main()
         closeApp("*",1)
         
         -- Tăng số account sau khi chạy xong
-        currentAccount = currentAccount + 1
+        -- (Đã được xử lý trong changeAccount.restoreAccount() - không cần tăng ở đây để tránh tăng 2 lần)
+        -- currentAccount = currentAccount + 1
         
         -- Cập nhật file currentbackup.txt sau khi tăng currentAccount
-        local finalUpdateSuccess, finalUpdateError = changeAccount.updateCurrentAccount(currentAccount, totalAccounts)
-        if not finalUpdateSuccess then
-            autoTiktok.logResult("ERROR", "", false, "Không thể cập nhật file currentbackup.txt sau khi chạy account " .. (currentAccount-1))
-            toast("Không thể cập nhật file currentbackup.txt")
-            return false
-        end
+        -- (Đã được xử lý trong changeAccount.restoreAccount() - không cần cập nhật ở đây)
+        -- local finalUpdateSuccess, finalUpdateError = changeAccount.updateCurrentAccount(currentAccount, totalAccounts)
+        -- if not finalUpdateSuccess then
+        --     autoTiktok.logResult("ERROR", "", false, "Không thể cập nhật file currentbackup.txt sau khi chạy account " .. (currentAccount-1))
+        --     toast("Không thể cập nhật file currentbackup.txt")
+        --     return false
+        -- end
+        
+        -- Đọc lại số account hiện tại từ file (đã được cập nhật trong restoreAccount)
+        currentAccount, totalAccounts = changeAccount.getCurrentAccount()
     end
     
     -- Reset currentAccount về 1 và cập nhật file

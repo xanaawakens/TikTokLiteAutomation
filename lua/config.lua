@@ -192,6 +192,17 @@ local config = {
             {508, 716, 0xffffff},
             {507, 713, 0xfd0010}
         },
+
+        watch_live_button = {
+            {295,697,0xfd2634},
+            {296,698,0xffffff},
+            {301,718,0xffffff},
+            {301,719,0xfd0010},
+            {307,697,0xfd2634},
+            {314,719,0xfd0010},
+            {319,698,0xffffff},
+            {319,697,0xfd2634}
+        },
     
         -- Ma trận màu cho nút complete
         complete_button = {
