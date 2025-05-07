@@ -46,14 +46,57 @@ function autoTiktok.runTikTokLiteAutomation()
     if not liveLoaded then
         return false, "Không thể xác nhận màn hình live đã load sau nhiều lần thử"
     end
+    liveLoaded = false
+    loadAttempt = 0
+
+    mSleep(2000)
+
+    -- 4. Vuốt sang video khác (2 lần)
+    local startY = math.floor(height * 0.9)   
+    local endY = math.floor(height * 0.6)   
+    local midX = math.floor(width / 2)
     
-    toast("Màn hình live đã load xong")
+    -- Vuốt lần 1
+    touchDown(1, midX, startY)
+    mSleep(100)
+    for i = 1, 10 do
+        local moveY = startY - (i * (startY - endY) / 10)
+        touchMove(1, midX, moveY)
+        mSleep(10)
+    end
+    touchUp(1, midX, endY)
     mSleep(3000)
     
-    -- 4. Check và click vào nút phần thưởng
+    -- Vuốt lần 2
+    touchDown(1, midX, startY)
+    mSleep(100)
+    for i = 1, 10 do
+        local moveY = startY - (i * (startY - endY) / 10)
+        touchMove(1, midX, moveY)
+        mSleep(10)
+    end
+    touchUp(1, midX, endY)
+    mSleep(3000)
+
+    while not liveLoaded and loadAttempt < maxLoadAttempts do
+        loadAttempt = loadAttempt + 1
+        liveLoaded, _ = rewards_live.waitForLiveScreen()
+        
+        if not liveLoaded then
+            toast("Màn hình live chưa load, chờ 3s và kiểm tra lại...")
+            mSleep(3000)
+        end
+    end
+    
+    if not liveLoaded then
+        return false, "Không thể xác nhận màn hình live đã load sau nhiều lần thử"
+    end
+    
+
+    -- 5. Check và click vào nút phần thưởng
     local rewardTapped = false
     local rewardError = nil
-    local maxRewardAttempts = 8  -- Kiểm tra trong khoảng 12 giây (8 lần * 1.5s)
+    local maxRewardAttempts = 4  -- Kiểm tra trong (4 lần * 1.5s)
     local rewardAttempt = 0
     
     while not rewardTapped and rewardAttempt < maxRewardAttempts do
@@ -74,12 +117,12 @@ function autoTiktok.runTikTokLiteAutomation()
         return false, rewardError or "Không tìm thấy nút phần thưởng sau nhiều lần thử"
     end
     
-    -- 5. Chờ màn hình giao diện nhiệm vụ phần thưởng load xong
+    -- 6. Chờ màn hình giao diện nhiệm vụ phần thưởng load xong
     local waitTime = config.timing.reward_click_wait or 8
     toast("Chờ " .. waitTime .. "s để giao diện phần thưởng load...")
     mSleep(waitTime * 1000)
     
-    -- 6. Thực hiện kéo xuống bên dưới (vuốt từ dưới đi lên)
+    -- 7. Thực hiện kéo xuống bên dưới (vuốt từ dưới đi lên)
     local startY = math.floor(height * 0.9)   -- Gần dưới cùng màn hình
     local endY = math.floor(height * 0.6)     -- Khoảng giữa màn hình
     local midX = math.floor(width / 2)       -- Giữa màn hình theo chiều ngang
@@ -96,7 +139,7 @@ function autoTiktok.runTikTokLiteAutomation()
     -- Đợi màn hình ổn định sau khi vuốt
     mSleep(2000)
     
-    -- 7. Check nút complete lần 1
+    -- 8. Check nút complete lần 1
     local completeFound, _, _, _ = rewards_live.checkCompleteButton()
     
     if completeFound then
@@ -110,9 +153,9 @@ function autoTiktok.runTikTokLiteAutomation()
     local monitorStartTime = os.time()    -- Thời điểm bắt đầu giám sát
     local recentClaimTimes = {}           -- Mảng lưu thời gian claim gần đây
     local claimFound = false
-    local claimCheckInterval = 10         -- 10s kiểm tra claim một lần
+    local claimCheckInterval = 5         -- 5s kiểm tra claim một lần
         
-    -- 8. Vòng lặp chính - kiểm tra claim và complete
+    -- 9. Vòng lặp chính - kiểm tra claim và complete
     while true do
         -- Kiểm tra và bấm nút Claim
         claimFound, claimError = rewards_live.tapClaimButton()
@@ -144,11 +187,25 @@ function autoTiktok.runTikTokLiteAutomation()
             
             -- Kiểm tra popup Reward upgraded sau mỗi lần claim thành công
             local screenW, screenH = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
-            local rewardX, rewardY = findImageInRegionFuzzy("popup2.png", 90, 1, 1, screenW, screenH, 0)
-            if rewardX ~= -1 and rewardY ~= -1 then
-                toast("Đóng popup nâng cấp phần thưởng sau khi claim")
-                tap(357, 1033)
-                mSleep(1000)
+            
+            -- Kiểm tra 3 lần cho popup nâng cấp phần thưởng
+            for i = 1, 3 do
+                local rewardX, rewardY = findImageInRegionFuzzy("popup2.png", 90, 1, 1, screenW, screenH, 0)
+                if rewardX ~= -1 and rewardY ~= -1 then
+                    toast("Đóng popup nâng cấp phần thưởng sau khi claim - lần " .. i)
+                    tap(357, 1033)
+                    mSleep(1000)
+                end
+            end
+
+            -- Kiểm tra 3 lần cho popup nhiệm vụ
+            for i = 1, 3 do
+                local missionX, missionY = findImageInRegionFuzzy("popupMission.png", 90, 1, 1, screenW, screenH, 0)
+                if missionX ~= -1 and missionY ~= -1 then
+                    toast("Đóng popup nhiệm vụ - lần " .. i)
+                    tap(375, 1059)
+                    mSleep(1000)
+                end
             end
             
             -- Đợi thêm 1s trước khi kiểm tra nút complete
@@ -162,27 +219,27 @@ function autoTiktok.runTikTokLiteAutomation()
             end
         end
         
-        -- 9. Trong 250s đầu check popupMission.png
-        local currentTime = os.time()
+        -- -- 9. Trong 250s đầu check popupMission.png
+        -- local currentTime = os.time()
         
-        if firstClaimTime ~= nil and 
-           (currentTime - firstClaimTime <= 250) and
-           (lastPopupCheckTime == 0 or currentTime - lastPopupCheckTime >= 3) then
+        -- if firstClaimTime ~= nil and 
+        --    (currentTime - firstClaimTime <= 250) and
+        --    (lastPopupCheckTime == 0 or currentTime - lastPopupCheckTime >= 3) then
             
-            -- Cập nhật thời gian kiểm tra popup
-            lastPopupCheckTime = currentTime
+        --     -- Cập nhật thời gian kiểm tra popup
+        --     lastPopupCheckTime = currentTime
             
-            -- Lấy kích thước màn hình 
-            local screenW, screenH = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
+        --     -- Lấy kích thước màn hình 
+        --     local screenW, screenH = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
             
-            -- Kiểm tra popup nhiệm vụ
-            local missionX, missionY = findImageInRegionFuzzy("popupMission.png", 90, 1, 1, screenW, screenH, 0)
-            if missionX ~= -1 and missionY ~= -1 then
-                toast("Đóng popup nhiệm vụ")
-                tap(375, 1059)
-                mSleep(1000)
-            end
-        end
+        --     -- Kiểm tra popup nhiệm vụ
+        --     local missionX, missionY = findImageInRegionFuzzy("popupMission.png", 90, 1, 1, screenW, screenH, 0)
+        --     if missionX ~= -1 and missionY ~= -1 then
+        --         toast("Đóng popup nhiệm vụ")
+        --         tap(375, 1059)
+        --         mSleep(1000)
+        --     end
+        -- end
         
         -- 10. Nếu trong 15s không thấy nút claim, check nút phần thưởng
         if lastClaimFoundTime ~= nil and os.time() - lastClaimFoundTime >= 15 then
@@ -194,8 +251,7 @@ function autoTiktok.runTikTokLiteAutomation()
                 
                 -- Vuốt để chuyển sang live stream khác
                 toast("Vuốt xuống stream khác...")
-                
-                -- Thực hiện vuốt mạnh từ dưới lên
+
                 touchDown(1, midX, startY)
                 mSleep(100)
                 for i = 1, 10 do

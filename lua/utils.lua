@@ -167,7 +167,7 @@ function utils.openTikTokLite(skipCheck)
     
     -- Kiểm tra và đóng popup Add Friends nếu xuất hiện
     nLog("Kiểm tra popup Add Friends sau khi mở app...")
-    local popupClosed, popupError = utils.checkAndClosePopupByImage("popupAddFriends.png", {400, 1267})
+    local popupClosed, popupError = utils.checkAndClosePopupByImage("popupAddFriends.png", {100, 1267})
     if popupClosed then
         nLog("Đã đóng popup Add Friends")
     elseif popupError then
@@ -433,6 +433,7 @@ function utils.clickLiveWithPopupCheck(liveButtonX, liveButtonY)
     -- Bấm vào nút live
     return utils.tapWithConfig(liveButtonX, liveButtonY, "nút live")
 end
+
 
 -- Xuất các hàm
 return {
