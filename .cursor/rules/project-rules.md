@@ -65,4 +65,5 @@
 - account_runtime and total_runtime are set to effectively unlimited values (99999999 seconds)
 - Timing limits are primarily controlled through config.lua
 - Account switching continues even if error occurs with one account
-- The system runs until all accounts are processed or manually stopped 
+- The system runs until all accounts are processed or manually stopped
+- Account reset mechanism now ensures that after processing the last account, the system resets to account 1 
