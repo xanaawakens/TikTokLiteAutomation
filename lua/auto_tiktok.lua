@@ -184,15 +184,55 @@ function autoTiktok.runTikTokLiteAutomation()
     local inRewardScreen, rewardScreenError = rewards_live.waitForRewardScreen()
     if not inRewardScreen then
         logger.warning("Không thể xác nhận đang ở màn hình phần thưởng: " .. (rewardScreenError or ""))
-        return false, "Không thể vào màn hình phần thưởng"
+        logger.info("Thực hiện quy trình khôi phục khi không load được màn hình phần thưởng...")
+        
+        -- 1. Bấm vào tọa độ 444, 444
+        logger.info("Bấm vào tọa độ (444, 444) để thoát khỏi trạng thái hiện tại")
+        tap(444, 444)
+        mSleep(2000)
+        
+        -- 2. Thực hiện vuốt để chuyển sang stream mới
+        logger.info("Vuốt để chuyển sang stream mới...")
+        touchDown(1, midX, startY)
+        mSleep(100)
+        for i = 1, 10 do
+            local moveY = startY - (i * (startY - endY) / 10)
+            touchMove(1, midX, moveY)
+            mSleep(20)
+        end
+        touchUp(1, midX, endY)
+        mSleep(3000)
+        
+        -- 3. Kiểm tra xem đã trong màn hình live chưa
+        logger.info("Kiểm tra xem đã load được màn hình live chưa...")
+        local liveScreenLoaded, liveError = rewards_live.waitForLiveScreen(8)
+        if not liveScreenLoaded then
+            logger.warning("Không thể xác nhận đã vào màn hình live sau khi khôi phục: " .. (liveError or ""))
+            return false, "Không thể khôi phục màn hình live sau khi gặp lỗi"
+        end
+        
+        logger.info("Đã vào lại màn hình live thành công")
+        
+        -- 4. Bấm vào nút phần thưởng lại
+        logger.info("Tìm và bấm vào nút phần thưởng lần nữa...")
+        local rewardRetapped, retapError = rewards_live.tapRewardButton()
+        if not rewardRetapped then
+            logger.warning("Không thể tìm thấy nút phần thưởng sau khi khôi phục: " .. (retapError or ""))
+            return false, "Không thể tìm lại nút phần thưởng sau khi khôi phục"
+        end
+        
+        -- 5. Kiểm tra lại màn hình phần thưởng
+        logger.info("Kiểm tra lại màn hình phần thưởng...")
+        inRewardScreen, rewardScreenError = rewards_live.waitForRewardScreen()
+        if not inRewardScreen then
+            logger.warning("Vẫn không thể vào màn hình phần thưởng sau khi khôi phục: " .. (rewardScreenError or ""))
+            return false, "Không thể vào màn hình phần thưởng sau khi khôi phục"
+        end
+        
+        logger.info("Đã vào màn hình phần thưởng thành công sau khi khôi phục!")
+    else
+        logger.info("Đã vào màn hình phần thưởng thành công!")
     end
-    
-    logger.info("Đã vào màn hình phần thưởng thành công!")
-    
-    -- -- 6. Chờ màn hình giao diện nhiệm vụ phần thưởng load xong
-    -- local waitTime = config.timing.reward_click_wait or 8
-    -- logger.info("Chờ " .. waitTime .. "s để giao diện phần thưởng load...")
-    -- mSleep(waitTime * 1000)
     
     -- 7. Thực hiện kéo xuống bên dưới (vuốt từ dưới đi lên)
     local startY = math.floor(height * 0.9)   -- Gần dưới cùng màn hình
