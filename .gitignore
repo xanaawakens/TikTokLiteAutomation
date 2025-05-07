@@ -1,0 +1,29 @@
+# TouchSprite and Lua specific
+*.lua.bak
+*.lua~
+*.luac
+luac.out
+
+# TouchSprite runtime files
+*.ts
+*.tsp
+*.png
+
+# Logs
+logs/
+*.log
+analysis.txt
+
+# Account data
+account_list.txt
+currentbackup.txt
+ImportedBackups.plist
+
+# System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# TouchSprite specific
+/var/ 

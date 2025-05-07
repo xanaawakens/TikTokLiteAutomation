@@ -58,4 +58,10 @@
 - Vietnamese function and variable names are acceptable
 - Comments can be in Vietnamese
 - Use `mSleep` for timing delays
-- Use utils.lua for common functionality 
+- Use utils.lua for common functionality
+
+## Runtime Configuration
+- account_runtime and total_runtime are set to effectively unlimited values (99999999 seconds)
+- Timing limits are primarily controlled through config.lua
+- Account switching continues even if error occurs with one account
+- The system runs until all accounts are processed or manually stopped 
