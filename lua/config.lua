@@ -86,7 +86,7 @@ local config = {
         -- Timing cho quá trình claim
         claim_tap_delay = 0.5,     -- Thời gian chờ sau khi tap vào nút claim (giảm xuống)
         after_claim_delay = 1,     -- Thời gian chờ sau khi claim thành công (giảm từ 2s xuống 1s)
-        popup_check_after_claim = 0.5, -- Thời gian chờ trước khi kiểm tra popup sau claim
+        popup_check_after_claim = 5, -- Thời gian chờ trước khi kiểm tra popup sau claim
         
         -- Timing cho utils.lua
         popup_detection = 5,       -- Thời gian tối đa để tìm kiếm popup (giây)
