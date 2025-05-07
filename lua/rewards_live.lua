@@ -356,20 +356,39 @@ end
 -- Thực hiện vuốt để chuyển sang live stream khác
 function rewardsLive.switchToNextStream(count, suppressNotification)
     count = count or 1
+    local width, height = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
+    local midX = math.floor(width / 2)       -- Giữa màn hình theo chiều ngang
+    local startY = math.floor(height * 0.9)  -- Gần dưới cùng màn hình
+    local endY = math.floor(height * 0.6)    -- Khoảng giữa màn hình
     
     for i = 1, count do
         if not suppressNotification then
             logger.info("Vuốt sang stream thứ " .. i, suppressNotification)
         end
         
-        -- Use utils.swipeBottomToMiddle to swipe from bottom to middle in the center of screen
-        local swipeSuccess, _, swipeError = utils.swipeBottomToMiddle()
-        if not swipeSuccess then
+        -- Thực hiện vuốt trực tiếp thay vì dùng utils
+        local success = true
+        local error = nil
+        
+        -- Direct implementation of swipe from bottom to middle
+        touchDown(1, midX, startY)
+        mSleep(100)
+        
+        -- Di chuyển mượt mà từ dưới lên giữa
+        for j = 1, 10 do
+            local moveY = startY - (j * (startY - endY) / 10)
+            touchMove(1, midX, moveY)
+            mSleep(20) -- Delay ngắn để đảm bảo vuốt mượt
+        end
+        
+        touchUp(1, midX, endY)
+        
+        if not success then
             if not suppressNotification then
                 local errorObj = errorHandler.createError(
                     errorHandler.ERROR_CODE[errorHandler.ERROR_GROUP.UI].SWIPE_FAILED,
                     "Không thể vuốt sang stream tiếp theo",
-                    {error = swipeError}
+                    {error = error}
                 )
                 errorHandler.logError(errorObj, MODULE_NAME, suppressNotification)
                 return false, errorObj

@@ -110,12 +110,32 @@ function autoTiktok.runTikTokLiteAutomation()
     mSleep(config.timing.ui_stabilize * 1000)
     
     -- 4. Vuốt để chuyển sang 1 live stream khác (tránh live stream đầu tiên)
-    utils.swipeBottomToMiddle()
+    local midX = math.floor(width / 2)       -- Giữa màn hình theo chiều ngang
+    local startY = math.floor(height * 0.9)  -- Gần dưới cùng màn hình  
+    local endY = math.floor(height * 0.6)    -- Khoảng giữa màn hình
+    
+    -- Vuốt trực tiếp bằng touchDown, touchMove, touchUp
+    touchDown(1, midX, startY)
+    mSleep(100)
+    for i = 1, 10 do
+        local moveY = startY - (i * (startY - endY) / 10)
+        touchMove(1, midX, moveY)
+        mSleep(20)
+    end
+    touchUp(1, midX, endY)
+    
     mSleep(3000)
     logger.info("Vuốt xuống stream khác...")
     
     -- Second swipe to ensure we're in a good live stream
-    utils.swipeBottomToMiddle()
+    touchDown(1, midX, startY)
+    mSleep(100)
+    for i = 1, 10 do
+        local moveY = startY - (i * (startY - endY) / 10)
+        touchMove(1, midX, moveY)
+        mSleep(20)
+    end
+    touchUp(1, midX, endY)
     
     mSleep(3000)
     
@@ -256,8 +276,15 @@ function autoTiktok.runTikTokLiteAutomation()
                 -- Vuốt để chuyển sang live stream khác
                 logger.info("Vuốt xuống stream khác...")
                 
-                -- Replace swipeNextVideo with swipeBottomToMiddle
-                utils.swipeBottomToMiddle()
+                -- Thực hiện vuốt trực tiếp
+                touchDown(1, midX, startY)
+                mSleep(100)
+                for i = 1, 10 do
+                    local moveY = startY - (i * (startY - endY) / 10)
+                    touchMove(1, midX, moveY)
+                    mSleep(20)
+                end
+                touchUp(1, midX, endY)
                 
                 mSleep(2000)
                 
@@ -281,8 +308,14 @@ function autoTiktok.runTikTokLiteAutomation()
                     mSleep((config.timing.reward_click_wait * 0.75) * 1000)
                     
                     -- Thực hiện vuốt mạnh từ dưới lên
-                    -- Replace swipeNextVideo with swipeBottomToMiddle
-                    utils.swipeBottomToMiddle()
+                    touchDown(1, midX, startY)
+                    mSleep(100)
+                    for i = 1, 10 do
+                        local moveY = startY - (i * (startY - endY) / 10)
+                        touchMove(1, midX, moveY)
+                        mSleep(20)
+                    end
+                    touchUp(1, midX, endY)
                     
                     mSleep(1500) -- giảm từ 2000ms xuống 1500ms
                     
