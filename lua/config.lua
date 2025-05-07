@@ -42,7 +42,7 @@ end
 local config = {
     -- Thông tin về cấu hình và phiên bản
     meta = {
-        version = "1.0.0",           -- Phiên bản của file cấu hình
+        version = "1.1.0",           -- Phiên bản của file cấu hình (updated for unlimited runtime)
         base_width = 750,            -- Chiều rộng màn hình chuẩn cho tọa độ
         base_height = 1334,          -- Chiều cao màn hình chuẩn cho tọa độ
         screen_width = _G.SCREEN_WIDTH, -- Chiều rộng màn hình thực tế
