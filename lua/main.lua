@@ -107,9 +107,6 @@ local function main()
         mSleep(3000)
         closeApp("*",1)
         
-        -- Không cần đọc lại từ file vì đã xử lý đúng trong restoreAccount
-        -- và đã cập nhật biến currentAccount khi nhận kết quả từ switchTikTokAccount
-        
         -- Kiểm tra lại tổng số account định kỳ (mỗi 5 account) để đảm bảo chính xác
         if currentAccount % 5 == 0 then
             local _, newTotalAccounts = fileManager.getCurrentAccount()

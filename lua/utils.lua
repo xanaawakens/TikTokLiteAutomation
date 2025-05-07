@@ -370,7 +370,7 @@ end
 -----------------------------
 
 -- Thực hiện tap với độ trễ từ cấu hình
-function utils.tapWithConfig(x, y, description)
+function utils.tapWithConfig(x, y, description, customDelay)
     description = description or "vị trí"
     
     -- Xác thực tham số
@@ -389,8 +389,11 @@ function utils.tapWithConfig(x, y, description)
         return false, nil, "Lỗi khi tap vào " .. description .. ": " .. (error or "")
     end
     
+    -- Sử dụng customDelay nếu được cung cấp, nếu không sử dụng giá trị từ config
+    local delay = customDelay or config.timing.tap_delay
+    
     logger.debug("Đã tap vào " .. description .. " (" .. x .. "," .. y .. ")")
-    mSleep(config.timing.tap_delay * 1000)
+    mSleep(delay * 1000)
     return true, nil, nil
 end
 

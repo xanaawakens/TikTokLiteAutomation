@@ -81,9 +81,14 @@ local config = {
         live_button_search = 2.5,  -- Thời gian chờ trước khi tìm nút live
         ui_stabilize = 1.5,        -- Thời gian chờ UI ổn định sau khi thực hiện thao tác
         action_verification = 3,   -- Thời gian chờ để xác minh một hành động
-        claim_check_interval = 3,  -- Thời gian giữa các lần kiểm tra nút claim
+        claim_check_interval = 1,  -- Thời gian giữa các lần kiểm tra nút claim (giảm từ 3s xuống 1s)
         reward_click_wait = 8,     -- Thời gian chờ sau khi bấm nút phần thưởng
         reward_popup_interval = 3, -- Thời gian giữa các lần kiểm tra popup phần thưởng
+        
+        -- Timing cho quá trình claim
+        claim_tap_delay = 0.5,     -- Thời gian chờ sau khi tap vào nút claim (giảm xuống)
+        after_claim_delay = 1,     -- Thời gian chờ sau khi claim thành công (giảm từ 2s xuống 1s)
+        popup_check_after_claim = 0.5, -- Thời gian chờ trước khi kiểm tra popup sau claim
         
         -- Timing cho utils.lua
         popup_detection = 5,       -- Thời gian tối đa để tìm kiếm popup (giây)
@@ -282,7 +287,14 @@ local config = {
         restore_button_coord = {scaleCoord(378, 1138)}, -- Tọa độ nút Restore AppData
         backup_numbers = {1, 2, 3, 4, 5},          -- Các số backup mặc định
         max_backup_number = 50,                    -- Số backup tối đa
-        account_select_coord = {scaleCoord(356, 478)} -- Tọa độ để chọn tài khoản
+        account_select_coord = {scaleCoord(356, 478)}, -- Tọa độ để chọn tài khoản
+        
+        -- Các đường dẫn phục vụ cho module change_account
+        paths = {
+            input_folder = "/private/var/mobile/Library/ADManager",  -- Thư mục chứa dữ liệu ADManager
+            output_folder = "/private/var/mobile/Media/TouchSprite/lua", -- Thư mục output cho script
+            imported_backups = "/private/var/mobile/Library/ADManager/ImportedBackups.plist" -- File cấu hình backups
+        }
     },
 
     -- Đường dẫn hình ảnh

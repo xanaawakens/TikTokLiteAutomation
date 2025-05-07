@@ -8,20 +8,30 @@ local fileManager = require("file_manager")  -- Sử dụng module quản lý fi
 
 local changeAccount = {}
 
--- Đường dẫn chính
-local input_folder = "/private/var/mobile/Library/ADManager"
-local output_folder = "/private/var/mobile/Media/TouchSprite/lua"
-local importedBackupsPlist = "/private/var/mobile/Library/ADManager/ImportedBackups.plist"
+-- Đường dẫn chính - sử dụng từ config
+local function getInputFolder()
+    return config.admanager.paths.input_folder
+end
+
+local function getOutputFolder()
+    return config.admanager.paths.output_folder
+end
+
+local function getImportedBackupsPath()
+    return config.admanager.paths.imported_backups
+end
 
 -- Thêm đường dẫn backup
-local backup_folder = output_folder .. "/backups"
+local function getBackupFolder()
+    return getOutputFolder() .. "/backups"
+end
 
 -- Tạo thư mục backup nếu chưa tồn tại
 local function ensureBackupFolderExists()
-    local command = "mkdir -p \"" .. backup_folder .. "\" 2>/dev/null"
+    local command = "mkdir -p \"" .. getBackupFolder() .. "\" 2>/dev/null"
     local result = os.execute(command)
     if not result then
-        logger.warning("Không thể tạo thư mục backup: " .. backup_folder)
+        logger.warning("Không thể tạo thư mục backup: " .. getBackupFolder())
     end
     return result
 end
@@ -40,7 +50,7 @@ local function backupFile(filePath, backupSuffix)
     
     backupSuffix = backupSuffix or os.date("_%Y%m%d_%H%M%S")
     local backupFileName = fileName .. backupSuffix
-    local backupPath = backup_folder .. "/" .. backupFileName
+    local backupPath = getBackupFolder() .. "/" .. backupFileName
     
     -- Kiểm tra file nguồn tồn tại
     local sourceFile = io.open(filePath, "r")
@@ -93,8 +103,8 @@ end
 -- Hàm lấy danh sách tất cả các file trong thư mục và ghi vào file
 function changeAccount.getAllFilesInFolder(folderPath)
     local files = {}
-    local outputFile = output_folder .. "/account_list.txt"
-    local currentBackupFile = output_folder .. "/currentbackup.txt"
+    local outputFile = getOutputFolder() .. "/account_list.txt"
+    local currentBackupFile = getOutputFolder() .. "/currentbackup.txt"
     
     -- Lấy số account hiện tại để giữ nguyên khi cập nhật
     local currentAccount = 1
@@ -175,7 +185,7 @@ function changeAccount.getAllFilesInFolder(folderPath)
     end
     
     -- Cập nhật file currentbackup.txt, giữ nguyên số account hiện tại
-    local updateSuccess, updateError = changeAccount.updateCurrentAccount(currentAccount, #files)
+    local updateSuccess, updateError = fileManager.updateCurrentAccount(currentAccount, #files)
     if not updateSuccess then
         logger.error("Không thể cập nhật file currentbackup.txt: " .. (updateError or ""))
     else
@@ -187,41 +197,12 @@ end
 
 -- Lấy số từ file current_backup.txt để biết chạy account thứ mấy và tổng số backup
 function changeAccount.getCurrentAccount()
-    local currentAccountFile = output_folder .. "/currentbackup.txt"
-    local currentAccount = 1
-    local totalAccounts = 1
-
-    -- Kiểm tra file tồn tại bằng cách thử mở file
-    local success, file = pcall(io.open, currentAccountFile, "r")
-    if success and file then
-        -- Đọc dòng đầu tiên - số account hiện tại
-        local line1 = file:read()
-        if line1 then
-            currentAccount = tonumber(line1) or 1
-        end
-        
-        -- Đọc dòng thứ hai - tổng số account
-        local line2 = file:read()
-        if line2 then
-            totalAccounts = tonumber(line2) or 1
-        end
-        
-        file:close()
-    else
-        -- Nếu file không tồn tại, tạo file với giá trị mặc định
-        logger.warning("File currentbackup.txt không tồn tại, tạo file mới với giá trị mặc định")
-        local updateSuccess, updateError = changeAccount.updateCurrentAccount(1, 1)
-        if not updateSuccess then
-            logger.error("Không thể tạo file currentbackup.txt: " .. (updateError or ""))
-        end
-    end
-
-    return currentAccount, totalAccounts
+    return fileManager.getCurrentAccount()
 end
 
 -- Lấy tên account từ file account_list.txt ở số hiện tại file currentbackup.txt
 function changeAccount.getAccountName()
-    local accountListFile = output_folder .. "/account_list.txt"
+    local accountListFile = getOutputFolder() .. "/account_list.txt"
     local accountName = "unknown"
     local currentAccount, totalAccounts = changeAccount.getCurrentAccount()
     
@@ -251,7 +232,7 @@ end
 
 -- Chỉnh sửa file ImportedBackups.plist để chạy account chỉ định
 function changeAccount.changeAccount(accountName)
-    local plistFile = output_folder .. "/ImportedBackups.plist"
+    local plistFile = getOutputFolder() .. "/ImportedBackups.plist"
     local success, file = pcall(io.open, plistFile, "r")
     if not success then
         logger.error("Không thể mở file ImportedBackups.plist")
@@ -265,10 +246,10 @@ function changeAccount.changeAccount(accountName)
     local newContent = content:gsub("name backup", accountName)
 
     -- Tạo backup trước khi ghi đè
-    backupFile(importedBackupsPlist, "_before_change")
+    backupFile(getImportedBackupsPath(), "_before_change")
     
     -- Ghi lại nội dung đã thay đổi vào file ImportedBackups.plist trong thư mục ADManager
-    success, file = pcall(io.open, importedBackupsPlist, "w")
+    success, file = pcall(io.open, getImportedBackupsPath(), "w")
     if not success then
         logger.error("Không thể ghi file ImportedBackups.plist")
         return false, "Không thể ghi file ImportedBackups.plist"
@@ -456,119 +437,21 @@ function changeAccount.switchTikTokAccount()
     return true, newAccount
 end
 
--- Cập nhật file currentbackup.txt với cơ chế atomic và backup
-function changeAccount.updateCurrentAccount(currentAccount, totalAccounts)
-    -- Kiểm tra tham số
-    if type(currentAccount) ~= "number" then
-        logger.error("updateCurrentAccount: currentAccount phải là số, nhận được: " .. type(currentAccount))
-        return false, "currentAccount phải là số"
-    end
-    
-    if type(totalAccounts) ~= "number" then
-        logger.error("updateCurrentAccount: totalAccounts phải là số, nhận được: " .. type(totalAccounts))
-        return false, "totalAccounts phải là số"
-    end
-    
-    -- Đảm bảo currentAccount không vượt quá totalAccounts
-    if currentAccount > totalAccounts then
-        logger.warning("updateCurrentAccount: currentAccount (" .. currentAccount .. ") vượt quá totalAccounts (" .. totalAccounts .. "), điều chỉnh")
-        currentAccount = totalAccounts
-    end
-    
-    -- Đảm bảo currentAccount không nhỏ hơn 1
-    if currentAccount < 1 then
-        logger.warning("updateCurrentAccount: currentAccount (" .. currentAccount .. ") nhỏ hơn 1, điều chỉnh")
-        currentAccount = 1
-    end
-    
-    local currentBackupFile = output_folder .. "/currentbackup.txt"
-    local tempFile = currentBackupFile .. ".tmp"
-    
-    -- Tạo backup file hiện tại trước khi thay đổi
-    local backupSuccess, backupPath = backupFile(currentBackupFile)
-    if not backupSuccess then
-        logger.warning("Không thể tạo backup cho currentbackup.txt: " .. (backupPath or ""))
-        -- Tiếp tục mặc dù không backup được, ghi nhật ký để debug
-    end
-    
-    -- Ghi vào file tạm trước để đảm bảo atomic operation
-    local tempSuccess, tempFileHandle = pcall(io.open, tempFile, "w")
-    if not tempSuccess or not tempFileHandle then
-        logger.error("Không thể tạo file tạm để cập nhật currentbackup.txt")
-        return false, "Không thể tạo file tạm"
-    end
-    
-    -- Nội dung cần ghi
-    local content = currentAccount .. "\n" .. totalAccounts
-    
-    -- Ghi nội dung vào file tạm
-    local writeSuccess, writeError = pcall(function() 
-        tempFileHandle:write(content)
-        tempFileHandle:flush() -- Đảm bảo dữ liệu được ghi xuống đĩa
-        tempFileHandle:close()
-    end)
-    
-    if not writeSuccess then
-        logger.error("Lỗi khi ghi vào file tạm: " .. tostring(writeError))
-        -- Xóa file tạm nếu ghi lỗi
-        os.remove(tempFile)
-        return false, "Lỗi khi ghi vào file tạm: " .. tostring(writeError)
-    end
-    
-    -- Di chuyển file tạm thành file thật - atomic operation
-    local renameSuccess = os.rename(tempFile, currentBackupFile)
-    
-    if not renameSuccess then
-        logger.error("Không thể di chuyển file tạm thành file thật")
-        
-        -- Cố gắng phương pháp thay thế bằng cách copy nội dung từ file tạm
-        local copySuccess = false
-        
-        -- Thử đọc file tạm
-        local tempReadFile = io.open(tempFile, "r")
-        if tempReadFile then
-            local tempContent = tempReadFile:read("*all")
-            tempReadFile:close()
-            
-            -- Thử ghi vào file thật
-            local finalFile = io.open(currentBackupFile, "w")
-            if finalFile then
-                finalFile:write(tempContent)
-                finalFile:close()
-                copySuccess = true
-            end
-        end
-        
-        -- Xóa file tạm
-        os.remove(tempFile)
-        
-        if not copySuccess then
-            -- Thử phục hồi từ backup
-            if backupSuccess then
-                local restoreSuccess, restoreError = restoreFromBackup(currentBackupFile, backupPath)
-                if not restoreSuccess then
-                    logger.error("Không thể phục hồi từ backup: " .. (restoreError or ""))
-                else
-                    logger.warning("Đã phục hồi file từ backup sau khi không thể cập nhật")
-                end
-            end
-            
-            return false, "Không thể cập nhật file currentbackup.txt"
-        end
-    end
-    
-    -- Xóa file tạm nếu vẫn còn (trường hợp rename thất bại nhưng copy thành công)
-    if renameSuccess == false then
-        os.remove(tempFile)
-    end
-    
-    logger.debug("Đã cập nhật file currentbackup.txt: " .. currentAccount .. "/" .. totalAccounts)
-    return true
+-- Thêm các hàm getter để truy cập các đường dẫn
+function changeAccount.getInputFolder()
+    return getInputFolder()
 end
 
--- Xuất các biến toàn cục để có thể truy cập từ bên ngoài
-changeAccount.input_folder = input_folder
-changeAccount.output_folder = output_folder
-changeAccount.importedBackupsPlist = importedBackupsPlist
+function changeAccount.getOutputFolder()
+    return getOutputFolder()
+end
+
+function changeAccount.getImportedBackupsPath()
+    return getImportedBackupsPath()
+end
+
+function changeAccount.getBackupFolder()
+    return getBackupFolder()
+end
 
 return changeAccount 
