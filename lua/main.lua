@@ -19,6 +19,29 @@ local fileManager = require("file_manager") -- Thêm module quản lý file
 
 -- Hàm chính quản lý luồng chạy của ứng dụng
 local function main()
+    -- Hàm để reset về account đầu tiên
+    local function resetToFirstAccount(totalAccounts)
+        logger.info("Đang reset về account đầu tiên...")
+        local resetSuccess, _, resetError = fileManager.updateCurrentAccount(1, totalAccounts)
+        if not resetSuccess then
+            logger.error("Không thể reset currentAccount về 1: " .. (resetError or ""))
+            return false
+        end
+        logger.info("Đã reset về account 1 thành công")
+        return true
+    end
+
+    -- Đảm bảo reset account khi thoát hàm
+    local function safeExit(success)
+        -- Lấy tổng số account hiện tại
+        local _, totalAccounts = fileManager.getCurrentAccount()
+        
+        -- Luôn cố gắng reset về account 1 khi thoát
+        resetToFirstAccount(totalAccounts)
+        
+        return success
+    end
+
     -- Cập nhật danh sách tài khoản từ thư mục
     local listSuccess, _, listError = fileManager.updateAccountList()
     if not listSuccess then
@@ -29,8 +52,13 @@ local function main()
     -- Lấy thông tin tài khoản hiện tại và tổng số tài khoản
     local currentAccount, totalAccounts = fileManager.getCurrentAccount()
     
+    -- Thêm biến đếm để tránh vòng lặp vô hạn
+    local loopCount = 0
+    local maxLoops = totalAccounts * 2 -- Cho phép lặp tối đa 2 lần số tài khoản
+    
     -- Chạy từ account hiện tại đến hết
-    while currentAccount <= totalAccounts do
+    while currentAccount <= totalAccounts and loopCount < maxLoops do
+        loopCount = loopCount + 1
         ::continue_loop::
         -- Đóng tất cả ứng dụng trước khi chuyển account
         closeApp("*",1)
@@ -41,7 +69,7 @@ local function main()
         if not getNameSuccess then
             fileManager.logResult(currentAccount, "unknown", false, nameError or "Không thể lấy tên account")
             logger.error("Không thể lấy tên account: " .. (nameError or ""))
-            return false
+            return safeExit(false)
         end
         
         -- Cập nhật tên account trong file ImportedBackups.plist
@@ -49,7 +77,7 @@ local function main()
         if not updateNameSuccess then
             fileManager.logResult(currentAccount, accountName, false, updateNameError or "Không thể cập nhật tên account")
             logger.error("Không thể cập nhật tên account: " .. (updateNameError or ""))
-            return false
+            return safeExit(false)
         end
         
         mSleep(1500)
@@ -75,7 +103,7 @@ local function main()
                 local updateSuccess, _, updateError = fileManager.updateCurrentAccount(currentAccount, totalAccounts)
                 if not updateSuccess then
                     logger.error("Không thể reset về account đầu tiên: " .. (updateError or ""))
-                    return false
+                    return safeExit(false)
                 end
             end
             
@@ -95,7 +123,7 @@ local function main()
         if not updateSuccess then
             fileManager.logResult(currentAccount, accountName, false, updateError or "Không thể cập nhật file currentbackup.txt")
             logger.error("Không thể cập nhật file currentbackup.txt: " .. (updateError or ""))
-            return false
+            return safeExit(false)
         end
         
         mSleep(7000)
@@ -114,17 +142,35 @@ local function main()
                 totalAccounts = newTotalAccounts
             end
         end
+        
+        -- Tăng currentAccount để xử lý account tiếp theo
+        currentAccount = currentAccount + 1
+        
+        -- Cập nhật file tracking với account tiếp theo
+        local updateNextSuccess, _, updateNextError = fileManager.updateCurrentAccount(currentAccount, totalAccounts)
+        if not updateNextSuccess then
+            logger.error("Không thể cập nhật file currentbackup.txt cho account tiếp theo: " .. (updateNextError or ""))
+            -- Vẫn tiếp tục với account đã tăng trong memory
+        end
+        
+        -- Log thông tin chuyển account
+        if currentAccount <= totalAccounts then
+            logger.info("Chuyển sang account tiếp theo: " .. currentAccount .. "/" .. totalAccounts)
+        else
+            logger.info("Đã xử lý xong account cuối cùng, chuẩn bị reset về account 1")
+        end
+    end
+    
+    -- Kiểm tra nếu thoát vòng lặp do đạt giới hạn lặp
+    if loopCount >= maxLoops then
+        logger.warning("Đã đạt giới hạn số vòng lặp (" .. maxLoops .. "). Có thể có vấn đề với việc xử lý tài khoản.")
     end
     
     -- Reset currentAccount về 1 và cập nhật file
-    local resetSuccess, _, resetError = fileManager.updateCurrentAccount(1, totalAccounts)
-    if not resetSuccess then
-        logger.error("Không thể reset currentAccount về 1: " .. (resetError or ""))
-        return false
-    end
+    resetToFirstAccount(totalAccounts)
     
     logger.info("Đã chạy xong tất cả " .. totalAccounts .. " account và reset về account 1")
-    return true
+    return safeExit(true)
 end
 
 -- Khởi động ứng dụng 
