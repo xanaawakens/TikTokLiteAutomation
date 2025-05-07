@@ -38,6 +38,7 @@ From the screenshots:
 3. **Logging**: Assessing the current logging system for improvements in error diagnosis
 4. **Account Management**: Exploring optimizations for account switching and management
 5. **New Reward Types**: Identifying additional reward mechanisms that could be automated
+6. **Version Control Protocol**: Implemented strict rule that Git operations (commits/pushes) must only be performed with explicit user instruction
 
 ## Current Challenges
 
@@ -78,10 +79,13 @@ The next focus areas appear to be:
 - Fixed Vietnamese text encoding issues in config.lua comments
 - Fixed account reset mechanism to ensure the script correctly resets to account 1 after processing all accounts
 - Added safety mechanisms to prevent infinite loops and ensure account state is reset properly
+- Added critical project rule: Git operations require explicit user instruction before execution
+- Added suppressNotification parameter to checkClaimButton and tapClaimButton to hide notifications when claim button not found
 
 ## Active Decisions and Considerations
 
 - The script should work reliably across multiple accounts without manual intervention
 - User experience should be smooth with clear logging and status updates
 - After processing all accounts, the system should properly reset to account 1 for the next run
-- The system should gracefully handle edge cases and errors 
+- The system should gracefully handle edge cases and errors
+- Version control operations (commit/push) will only be performed when explicitly instructed 

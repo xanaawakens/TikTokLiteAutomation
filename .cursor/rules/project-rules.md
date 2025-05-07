@@ -11,12 +11,15 @@
 - Use descriptive error messages that include what failed and why
 - Handle unexpected states gracefully
 - Log errors with sufficient context for diagnosis
+- UI element descriptions can be hidden by setting `logErrors=false` in UI detection functions
+- Use `suppressNotification=true` with `checkClaimButton` and `tapClaimButton` to completely suppress error notifications when claim button is not found
 
 ## UI Automation
 - Use color pattern detection as the primary means of identifying UI elements
 - Have fallback mechanisms when primary detection fails
 - Use image recognition for complex UI elements
 - Include appropriate delays after UI interactions
+- Set `logErrors=false` when checking for UI elements to completely suppress error logging and notifications
 
 ## Configuration
 - All configurable values should be in config.lua
@@ -24,6 +27,14 @@
 - Group related configuration values together
 - Use descriptive names for configuration keys
 - All color patterns are now organized under config.color_patterns and old compatibility names have been removed
+
+## Version Control Practices
+- **CRITICAL RULE**: Commits and pushes must ONLY be performed when explicitly instructed by the user
+- Wait for specific instruction phrases like "commit these changes" or "push to repository" 
+- Never automatically commit or push code changes as part of other operations
+- Always show staged changes before committing and wait for confirmation
+- Commit messages should follow the standard format and be approved by user
+- Specific Git workflow commands (checkout, branch, merge) also require explicit user instruction
 
 ## Logging
 - Use `toast` for user-visible messages

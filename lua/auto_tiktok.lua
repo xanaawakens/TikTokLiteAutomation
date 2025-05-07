@@ -237,7 +237,7 @@ function autoTiktok.runTikTokLiteAutomation()
             logger.info("Đợi 10s và kiểm tra xem nút claim còn hiện diện không...")
             mSleep(10000)
             
-            local stillClaimButton, _, _, _ = rewards_live.checkClaimButton()
+            local stillClaimButton, _, _, _ = rewards_live.checkClaimButton(true)
             if stillClaimButton then
                 logger.warning("Lỗi: Nút claim vẫn còn sau 10s - Something went wrong")
                 return false, "Lỗi Something went wrong: Nút claim vẫn hiện diện sau khi đã claim 10s"
@@ -297,7 +297,7 @@ function autoTiktok.runTikTokLiteAutomation()
                     mSleep(1500) -- giảm từ 2000ms xuống 1500ms
                     
                     -- Kiểm tra nút complete
-                    completeFound, _, _, _ = rewards_live.checkCompleteButton()
+                    completeFound, _, _, _ = rewards_live.checkCompleteButton(true)
                     
                     if completeFound then
                         return true, "Hoàn thành nhiệm vụ thành công"
