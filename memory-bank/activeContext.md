@@ -81,6 +81,12 @@ The next focus areas appear to be:
 - Added safety mechanisms to prevent infinite loops and ensure account state is reset properly
 - Added critical project rule: Git operations require explicit user instruction before execution
 - Added suppressNotification parameter to checkClaimButton and tapClaimButton to hide notifications when claim button not found
+- Enhanced error suppression to completely silence both UI notifications and log file entries:
+  - Updated logger.lua to add a suppress parameter that prevents both screen and file logging
+  - Modified error_handler.lua to pass the suppress parameter through to the logger
+  - Enhanced rewards_live.lua to properly propagate suppressNotification to all error handling calls
+  - Updated auto_tiktok.lua to use suppressNotification=true where appropriate
+  - Fixed bug where errors were still being logged to files even when UI notifications were suppressed
 
 ## Active Decisions and Considerations
 
@@ -88,4 +94,5 @@ The next focus areas appear to be:
 - User experience should be smooth with clear logging and status updates
 - After processing all accounts, the system should properly reset to account 1 for the next run
 - The system should gracefully handle edge cases and errors
-- Version control operations (commit/push) will only be performed when explicitly instructed 
+- Version control operations (commit/push) will only be performed when explicitly instructed
+- Error notifications should be completely suppressed for expected "not found" scenarios (especially for claim buttons) 
