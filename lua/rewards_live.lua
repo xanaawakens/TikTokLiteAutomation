@@ -362,8 +362,8 @@ function rewardsLive.switchToNextStream(count, suppressNotification)
             logger.info("Vuốt sang stream thứ " .. i, suppressNotification)
         end
         
-        -- Use utils.swipeNextVideo instead of manual implementation
-        local swipeSuccess, _, swipeError = utils.swipeNextVideo()
+        -- Use utils.swipeBottomToMiddle to swipe from bottom to middle in the center of screen
+        local swipeSuccess, _, swipeError = utils.swipeBottomToMiddle()
         if not swipeSuccess then
             if not suppressNotification then
                 local errorObj = errorHandler.createError(

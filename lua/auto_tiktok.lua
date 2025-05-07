@@ -110,16 +110,12 @@ function autoTiktok.runTikTokLiteAutomation()
     mSleep(config.timing.ui_stabilize * 1000)
     
     -- 4. Vuốt để chuyển sang 1 live stream khác (tránh live stream đầu tiên)
-    -- local switchSuccess, switchError = rewards_live.switchToNextStream(1)
-    -- if not switchSuccess then
-    --     return false, switchError
-    -- end
-    -- Replace manual swipe with utils function
-    utils.swipeNextVideo()
+    utils.swipeBottomToMiddle()
+    mSleep(3000)
     logger.info("Vuốt xuống stream khác...")
     
     -- Second swipe to ensure we're in a good live stream
-    utils.swipeNextVideo()
+    utils.swipeBottomToMiddle()
     
     mSleep(3000)
     
@@ -234,8 +230,8 @@ function autoTiktok.runTikTokLiteAutomation()
             
             local stillClaimButton, _, _, _ = rewards_live.checkClaimButton(true)
             if stillClaimButton then
-                logger.warning("Lỗi: Nút claim vẫn còn sau 10s - Something went wrong")
-                return false, "Lỗi Something went wrong: Nút claim vẫn hiện diện sau khi đã claim 10s"
+                logger.warning("Lỗi: Something went wrong")
+                return false, "Lỗi Something went wrong"
             end
         else
             -- Tăng số lần thất bại liên tiếp
@@ -260,8 +256,8 @@ function autoTiktok.runTikTokLiteAutomation()
                 -- Vuốt để chuyển sang live stream khác
                 logger.info("Vuốt xuống stream khác...")
                 
-                -- Replace manual swipe with utils function
-                utils.swipeNextVideo()
+                -- Replace swipeNextVideo with swipeBottomToMiddle
+                utils.swipeBottomToMiddle()
                 
                 mSleep(2000)
                 
@@ -285,8 +281,8 @@ function autoTiktok.runTikTokLiteAutomation()
                     mSleep((config.timing.reward_click_wait * 0.75) * 1000)
                     
                     -- Thực hiện vuốt mạnh từ dưới lên
-                    -- Replace manual swipe with utils function
-                    utils.swipeNextVideo()
+                    -- Replace swipeNextVideo with swipeBottomToMiddle
+                    utils.swipeBottomToMiddle()
                     
                     mSleep(1500) -- giảm từ 2000ms xuống 1500ms
                     
