@@ -3,6 +3,8 @@
 
 require("TSLib")
 local config = require("config")
+local logger = require("logger")
+local fileManager = require("file_manager")  -- Sử dụng module quản lý file mới
 
 local changeAccount = {}
 
@@ -11,18 +13,104 @@ local input_folder = "/private/var/mobile/Library/ADManager"
 local output_folder = "/private/var/mobile/Media/TouchSprite/lua"
 local importedBackupsPlist = "/private/var/mobile/Library/ADManager/ImportedBackups.plist"
 
+-- Thêm đường dẫn backup
+local backup_folder = output_folder .. "/backups"
+
+-- Tạo thư mục backup nếu chưa tồn tại
+local function ensureBackupFolderExists()
+    local command = "mkdir -p \"" .. backup_folder .. "\" 2>/dev/null"
+    local result = os.execute(command)
+    if not result then
+        logger.warning("Không thể tạo thư mục backup: " .. backup_folder)
+    end
+    return result
+end
+
+-- Hàm tạo bản sao lưu file
+local function backupFile(filePath, backupSuffix)
+    if not ensureBackupFolderExists() then
+        return false, "Không thể tạo thư mục backup"
+    end
+    
+    -- Tạo tên file backup
+    local fileName = filePath:match("([^/]+)$")
+    if not fileName then
+        return false, "Không thể xác định tên file từ đường dẫn"
+    end
+    
+    backupSuffix = backupSuffix or os.date("_%Y%m%d_%H%M%S")
+    local backupFileName = fileName .. backupSuffix
+    local backupPath = backup_folder .. "/" .. backupFileName
+    
+    -- Kiểm tra file nguồn tồn tại
+    local sourceFile = io.open(filePath, "r")
+    if not sourceFile then
+        return false, "File nguồn không tồn tại: " .. filePath
+    end
+    
+    -- Đọc nội dung file nguồn
+    local content = sourceFile:read("*all")
+    sourceFile:close()
+    
+    -- Ghi nội dung vào file backup
+    local backupFile = io.open(backupPath, "w")
+    if not backupFile then
+        return false, "Không thể tạo file backup: " .. backupPath
+    end
+    
+    backupFile:write(content)
+    backupFile:close()
+    
+    logger.debug("Đã tạo bản sao lưu: " .. backupPath)
+    return true, backupPath
+end
+
+-- Hàm phục hồi file từ bản sao lưu
+local function restoreFromBackup(originalFilePath, backupFilePath)
+    -- Kiểm tra file backup tồn tại
+    local backupFile = io.open(backupFilePath, "r")
+    if not backupFile then
+        return false, "File backup không tồn tại: " .. backupFilePath
+    end
+    
+    -- Đọc nội dung file backup
+    local content = backupFile:read("*all")
+    backupFile:close()
+    
+    -- Ghi nội dung vào file gốc
+    local originalFile = io.open(originalFilePath, "w")
+    if not originalFile then
+        return false, "Không thể ghi vào file gốc: " .. originalFilePath
+    end
+    
+    originalFile:write(content)
+    originalFile:close()
+    
+    logger.info("Đã phục hồi file " .. originalFilePath .. " từ backup")
+    return true
+end
+
 -- Hàm lấy danh sách tất cả các file trong thư mục và ghi vào file
 function changeAccount.getAllFilesInFolder(folderPath)
     local files = {}
     local outputFile = output_folder .. "/account_list.txt"
     local currentBackupFile = output_folder .. "/currentbackup.txt"
     
+    -- Lấy số account hiện tại để giữ nguyên khi cập nhật
+    local currentAccount = 1
+    local currentBackup = io.open(currentBackupFile, "r")
+    if currentBackup then
+        currentAccount = tonumber(currentBackup:read()) or 1
+        currentBackup:close()
+        logger.debug("Giữ nguyên currentAccount = " .. currentAccount .. " khi quét lại danh sách file")
+    end
+    
     -- Sử dụng io.popen để liệt kê các file
     local command = "ls -la \"" .. folderPath .. "\" 2>/dev/null"
     local handle = io.popen(command)
     
     if not handle then
-        toast("Không thể thực hiện lệnh ls trên thư mục")
+        logger.error("Không thể thực hiện lệnh ls trên thư mục")
         return files
     end
     
@@ -31,7 +119,7 @@ function changeAccount.getAllFilesInFolder(folderPath)
     
     -- Kiểm tra xem thư mục có tồn tại không
     if result == "" then
-        toast("Thư mục không tồn tại: " .. folderPath)
+        logger.error("Thư mục không tồn tại: " .. folderPath)
         return files
     end
     
@@ -71,6 +159,9 @@ function changeAccount.getAllFilesInFolder(folderPath)
         end
     end
     
+    -- Tạo backup trước khi ghi vào account_list.txt
+    backupFile(outputFile, "_before_update")
+    
     -- Ghi danh sách vào file account_list.txt
     local file = io.open(outputFile, "w")
     if file then
@@ -78,26 +169,17 @@ function changeAccount.getAllFilesInFolder(folderPath)
             file:write(i .. ": " .. fileName .. "\n")
         end
         file:close()
-        toast("Đã ghi danh sách vào file: " .. outputFile .. " (" .. #files .. " files)")
+        logger.info("Đã ghi danh sách vào file: " .. outputFile .. " (" .. #files .. " files)")
     else
-        toast("Lỗi: Không thể ghi vào file: " .. outputFile)
+        logger.error("Không thể ghi vào file: " .. outputFile)
     end
     
-    -- Ghi số lượng file vào dòng thứ 2 của currentbackup.txt
-    local currentBackup = io.open(currentBackupFile, "r")
-    local currentAccount = "1"
-    if currentBackup then
-        currentAccount = currentBackup:read() or "1"
-        currentBackup:close()
-    end
-    
-    currentBackup = io.open(currentBackupFile, "w")
-    if currentBackup then
-        currentBackup:write(currentAccount .. "\n" .. #files)
-        currentBackup:close()
-        toast("Đã cập nhật số lượng file vào currentbackup.txt: " .. #files)
+    -- Cập nhật file currentbackup.txt, giữ nguyên số account hiện tại
+    local updateSuccess, updateError = changeAccount.updateCurrentAccount(currentAccount, #files)
+    if not updateSuccess then
+        logger.error("Không thể cập nhật file currentbackup.txt: " .. (updateError or ""))
     else
-        toast("Lỗi: Không thể ghi vào file currentbackup.txt")
+        logger.info("Đã cập nhật tổng số accounts: " .. #files .. ", giữ nguyên account hiện tại: " .. currentAccount)
     end
     
     return files
@@ -125,6 +207,13 @@ function changeAccount.getCurrentAccount()
         end
         
         file:close()
+    else
+        -- Nếu file không tồn tại, tạo file với giá trị mặc định
+        logger.warning("File currentbackup.txt không tồn tại, tạo file mới với giá trị mặc định")
+        local updateSuccess, updateError = changeAccount.updateCurrentAccount(1, 1)
+        if not updateSuccess then
+            logger.error("Không thể tạo file currentbackup.txt: " .. (updateError or ""))
+        end
     end
 
     return currentAccount, totalAccounts
@@ -149,11 +238,11 @@ function changeAccount.getAccountName()
         file:close()
         
         if accountName == "unknown" then
-            toast("Không tìm thấy account số " .. currentAccount .. " trong danh sách")
+            logger.error("Không tìm thấy account số " .. currentAccount .. " trong danh sách")
             return nil, "Không tìm thấy account số " .. currentAccount .. " trong danh sách"
         end
     else
-        toast("Không thể mở file danh sách account: " .. accountListFile)
+        logger.error("Không thể mở file danh sách account: " .. accountListFile)
         return nil, "Không thể mở file danh sách account: " .. accountListFile
     end
 
@@ -165,7 +254,7 @@ function changeAccount.changeAccount(accountName)
     local plistFile = output_folder .. "/ImportedBackups.plist"
     local success, file = pcall(io.open, plistFile, "r")
     if not success then
-        toast("Không thể mở file ImportedBackups.plist")
+        logger.error("Không thể mở file ImportedBackups.plist")
         return false, "Không thể mở file ImportedBackups.plist"
     end
 
@@ -175,15 +264,19 @@ function changeAccount.changeAccount(accountName)
     -- Thay thế "name backup" bằng accountName
     local newContent = content:gsub("name backup", accountName)
 
+    -- Tạo backup trước khi ghi đè
+    backupFile(importedBackupsPlist, "_before_change")
+    
     -- Ghi lại nội dung đã thay đổi vào file ImportedBackups.plist trong thư mục ADManager
     success, file = pcall(io.open, importedBackupsPlist, "w")
     if not success then
-        toast("Không thể ghi file ImportedBackups.plist")
+        logger.error("Không thể ghi file ImportedBackups.plist")
         return false, "Không thể ghi file ImportedBackups.plist"
     end
 
     file:write(newContent)
     file:close()
+    logger.debug("Đã cập nhật tên account thành: " .. accountName)
     return true
 end
 
@@ -191,7 +284,7 @@ end
 function changeAccount.openADManager()
     local bundleID = config.admanager.bundle_id
     
-    toast("Đang mở Apps Manager")
+    logger.info("Đang mở Apps Manager")
     
     -- Đóng app nếu đang chạy để mở lại từ đầu
     if appIsRunning(bundleID) then
@@ -203,7 +296,7 @@ function changeAccount.openADManager()
     local openResult = runApp(bundleID)
     
     if not openResult then
-        toast("Lỗi: Không thể mở Apps Manager")
+        logger.error("Không thể mở Apps Manager")
         return false, "Không thể mở Apps Manager"
     end
     
@@ -212,7 +305,7 @@ function changeAccount.openADManager()
     
     -- Kiểm tra app có ở foreground không
     if not isFrontApp(bundleID) then
-        toast("Apps Manager không ở foreground sau khi mở")
+        logger.error("Apps Manager không ở foreground sau khi mở")
         return false, "Apps Manager không ở foreground sau khi mở"
     end
     
@@ -223,7 +316,7 @@ end
 function changeAccount.clickAppsList()
     local coord = config.admanager.app_list_coord
     
-    toast("Bấm vào danh sách ứng dụng")
+    logger.debug("Bấm vào danh sách ứng dụng tại vị trí " .. coord[1] .. "," .. coord[2])
     tap(coord[1], coord[2])
     mSleep(2000)
     
@@ -294,37 +387,48 @@ function changeAccount.restoreAccount()
     -- Sử dụng tọa độ dựa trên kích thước màn hình
     local width, height = getScreenSize()
     
-    -- Nút Restore thường nằm ở phía dưới màn hình
-    local restoreX = 360  -- Giữa màn hình theo chiều ngang
-    local restoreY = 1135  -- 85% chiều cao màn hình
-    local accountX = 356
-    local accountY = 478
+    -- Nút Restore thường nằm ở phía dưới màn hình - Sử dụng cấu hình
+    local restoreX, restoreY = table.unpack(config.admanager.restore_button_coord)
+    local accountX, accountY = table.unpack(config.admanager.account_select_coord)
 
+    logger.debug("Chọn tài khoản tại vị trí " .. accountX .. "," .. accountY)
     tap(accountX, accountY)
     mSleep(3000)
 
+    logger.debug("Bấm nút Restore tại vị trí " .. restoreX .. "," .. restoreY)
     tap(restoreX, restoreY)
     mSleep(1000)
     
     -- Lấy thông tin tài khoản hiện tại và tổng số tài khoản
-    local currentAccount, totalAccounts = changeAccount.getCurrentAccount()
+    local currentAccount, totalAccounts = fileManager.getCurrentAccount()
+    
+    -- Kiểm tra trước khi tăng account để đảm bảo không vượt quá tổng số
+    if currentAccount >= totalAccounts then
+        logger.warning("Đã đến account cuối cùng: " .. currentAccount .. "/" .. totalAccounts)
+        -- Không tăng account và trả về account hiện tại
+        return true, currentAccount
+    end
     
     -- Tăng số account ngay sau khi restore
-    toast("Tăng số account lên " .. (currentAccount + 1) .. "/" .. totalAccounts)
-    currentAccount = currentAccount + 1
+    local newAccountNumber = currentAccount + 1
+    logger.info("Tăng số account lên " .. newAccountNumber .. "/" .. totalAccounts)
     
     -- Cập nhật file currentbackup.txt sau khi tăng currentAccount
-    local updateSuccess, updateError = changeAccount.updateCurrentAccount(currentAccount, totalAccounts)
+    local updateSuccess, _, updateError = fileManager.updateCurrentAccount(newAccountNumber, totalAccounts)
     if not updateSuccess then
-        toast("Không thể cập nhật file currentbackup.txt: " .. (updateError or ""))
-        -- Tiếp tục thực hiện mặc dù có lỗi
+        logger.error("Không thể cập nhật file currentbackup.txt: " .. (updateError or ""))
+        -- Vẫn trả về account đã tăng mặc dù không lưu được file
+        -- Ghi nhớ giá trị đã tăng để main.lua có thể sử dụng
+        return true, newAccountNumber
     end
 
-    return true
+    -- Trả về trạng thái thành công và số account hiện tại đã tăng
+    return true, newAccountNumber
 end
 
 -- Thực hiện đầy đủ quy trình chuyển đổi tài khoản TikTok
 function changeAccount.switchTikTokAccount()
+    closeApp(config.admanager.bundle_id)
     -- 1. Mở ADManager
     local success, reason = changeAccount.openADManager()
     if not success then
@@ -344,26 +448,122 @@ function changeAccount.switchTikTokAccount()
     end
     
     -- 4. Bấm vào nút Restore AppData
-    local restoreSuccess = changeAccount.restoreAccount()
+    local restoreSuccess, newAccount = changeAccount.restoreAccount()
     if not restoreSuccess then
         return false, "Không thể thực hiện khôi phục dữ liệu"
     end
     
-    return true
+    return true, newAccount
 end
 
--- Cập nhật file currentbackup.txt
+-- Cập nhật file currentbackup.txt với cơ chế atomic và backup
 function changeAccount.updateCurrentAccount(currentAccount, totalAccounts)
-    local currentBackupFile = output_folder .. "/currentbackup.txt"
-    local currentFile = io.open(currentBackupFile, "w")
-    if currentFile then
-        currentFile:write(currentAccount .. "\n" .. totalAccounts)
-        currentFile:close()
-        return true
-    else
-        toast("Không thể cập nhật file currentbackup.txt")
-        return false, "Không thể cập nhật file currentbackup.txt"
+    -- Kiểm tra tham số
+    if type(currentAccount) ~= "number" then
+        logger.error("updateCurrentAccount: currentAccount phải là số, nhận được: " .. type(currentAccount))
+        return false, "currentAccount phải là số"
     end
+    
+    if type(totalAccounts) ~= "number" then
+        logger.error("updateCurrentAccount: totalAccounts phải là số, nhận được: " .. type(totalAccounts))
+        return false, "totalAccounts phải là số"
+    end
+    
+    -- Đảm bảo currentAccount không vượt quá totalAccounts
+    if currentAccount > totalAccounts then
+        logger.warning("updateCurrentAccount: currentAccount (" .. currentAccount .. ") vượt quá totalAccounts (" .. totalAccounts .. "), điều chỉnh")
+        currentAccount = totalAccounts
+    end
+    
+    -- Đảm bảo currentAccount không nhỏ hơn 1
+    if currentAccount < 1 then
+        logger.warning("updateCurrentAccount: currentAccount (" .. currentAccount .. ") nhỏ hơn 1, điều chỉnh")
+        currentAccount = 1
+    end
+    
+    local currentBackupFile = output_folder .. "/currentbackup.txt"
+    local tempFile = currentBackupFile .. ".tmp"
+    
+    -- Tạo backup file hiện tại trước khi thay đổi
+    local backupSuccess, backupPath = backupFile(currentBackupFile)
+    if not backupSuccess then
+        logger.warning("Không thể tạo backup cho currentbackup.txt: " .. (backupPath or ""))
+        -- Tiếp tục mặc dù không backup được, ghi nhật ký để debug
+    end
+    
+    -- Ghi vào file tạm trước để đảm bảo atomic operation
+    local tempSuccess, tempFileHandle = pcall(io.open, tempFile, "w")
+    if not tempSuccess or not tempFileHandle then
+        logger.error("Không thể tạo file tạm để cập nhật currentbackup.txt")
+        return false, "Không thể tạo file tạm"
+    end
+    
+    -- Nội dung cần ghi
+    local content = currentAccount .. "\n" .. totalAccounts
+    
+    -- Ghi nội dung vào file tạm
+    local writeSuccess, writeError = pcall(function() 
+        tempFileHandle:write(content)
+        tempFileHandle:flush() -- Đảm bảo dữ liệu được ghi xuống đĩa
+        tempFileHandle:close()
+    end)
+    
+    if not writeSuccess then
+        logger.error("Lỗi khi ghi vào file tạm: " .. tostring(writeError))
+        -- Xóa file tạm nếu ghi lỗi
+        os.remove(tempFile)
+        return false, "Lỗi khi ghi vào file tạm: " .. tostring(writeError)
+    end
+    
+    -- Di chuyển file tạm thành file thật - atomic operation
+    local renameSuccess = os.rename(tempFile, currentBackupFile)
+    
+    if not renameSuccess then
+        logger.error("Không thể di chuyển file tạm thành file thật")
+        
+        -- Cố gắng phương pháp thay thế bằng cách copy nội dung từ file tạm
+        local copySuccess = false
+        
+        -- Thử đọc file tạm
+        local tempReadFile = io.open(tempFile, "r")
+        if tempReadFile then
+            local tempContent = tempReadFile:read("*all")
+            tempReadFile:close()
+            
+            -- Thử ghi vào file thật
+            local finalFile = io.open(currentBackupFile, "w")
+            if finalFile then
+                finalFile:write(tempContent)
+                finalFile:close()
+                copySuccess = true
+            end
+        end
+        
+        -- Xóa file tạm
+        os.remove(tempFile)
+        
+        if not copySuccess then
+            -- Thử phục hồi từ backup
+            if backupSuccess then
+                local restoreSuccess, restoreError = restoreFromBackup(currentBackupFile, backupPath)
+                if not restoreSuccess then
+                    logger.error("Không thể phục hồi từ backup: " .. (restoreError or ""))
+                else
+                    logger.warning("Đã phục hồi file từ backup sau khi không thể cập nhật")
+                end
+            end
+            
+            return false, "Không thể cập nhật file currentbackup.txt"
+        end
+    end
+    
+    -- Xóa file tạm nếu vẫn còn (trường hợp rename thất bại nhưng copy thành công)
+    if renameSuccess == false then
+        os.remove(tempFile)
+    end
+    
+    logger.debug("Đã cập nhật file currentbackup.txt: " .. currentAccount .. "/" .. totalAccounts)
+    return true
 end
 
 -- Xuất các biến toàn cục để có thể truy cập từ bên ngoài

@@ -5,30 +5,34 @@ require("TSLib")
 local config = require("config")
 local utils = require("utils")
 local rewards_live = require("rewards_live")
+local logger = require("logger")
+local fileManager = require("file_manager") -- Thêm module quản lý file mới
 
 local autoTiktok = {}
 
--- Hàm mở TikTok Lite và thực hiện các tác vụ tự động
-function autoTiktok.runTikTokLiteAutomation()
-    local width, height = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
-    
-    -- 1. Mở TikTok Lite
-    local success = utils.openTikTokLite(false)
+-- Khởi tạo và mở ứng dụng TikTok Lite
+local function initializeApp()
+    -- Mở TikTok Lite
+    local success, error = utils.openTikTokLite(false)
     
     if not success then
-        return false, "Không thể mở TikTok Lite"
+        return false, "Không thể mở TikTok Lite: " .. (error or "")
     end
     
     mSleep(3000)
-    
-    -- 2. Bấm vào nút xem live
+    return true, nil
+end
+
+-- Di chuyển đến màn hình xem live stream
+local function navigateToLiveStream()
+    -- Bấm vào nút xem live
     local tapped, tapError = rewards_live.tapLiveButton()
     
     if not tapped then
         return false, tapError or "Không thể tìm thấy nút xem live"
     end
     
-    -- 3. Check đã load chưa, chưa load chờ 3s check tiếp
+    -- Kiểm tra đã load chưa
     local liveLoaded = false
     local maxLoadAttempts = 5  -- Giới hạn số lần thử
     local loadAttempt = 0
@@ -38,7 +42,7 @@ function autoTiktok.runTikTokLiteAutomation()
         liveLoaded, _ = rewards_live.waitForLiveScreen()
         
         if not liveLoaded then
-            toast("Màn hình live chưa load, chờ 3s và kiểm tra lại...")
+            logger.info("Màn hình live chưa load, chờ 3s và kiểm tra lại...")
             mSleep(3000)
         end
     end
@@ -46,53 +50,66 @@ function autoTiktok.runTikTokLiteAutomation()
     if not liveLoaded then
         return false, "Không thể xác nhận màn hình live đã load sau nhiều lần thử"
     end
-    liveLoaded = false
-    loadAttempt = 0
-
+    
     mSleep(2000)
+    return true, nil
+end
 
-    -- 4. Vuốt sang video khác (2 lần)
-    local startY = math.floor(height * 0.9)   
-    local endY = math.floor(height * 0.6)   
-    local midX = math.floor(width / 2)
+-- Xử lý các popup sau khi claim
+local function handlePopupsAfterClaim()
+    local screenW, screenH = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
     
-    -- Vuốt lần 1
-    touchDown(1, midX, startY)
-    mSleep(100)
-    for i = 1, 10 do
-        local moveY = startY - (i * (startY - endY) / 10)
-        touchMove(1, midX, moveY)
-        mSleep(10)
+    -- Kiểm tra 3 lần cho popup nâng cấp phần thưởng
+    for i = 1, 3 do
+        local rewardX, rewardY = findImageInRegionFuzzy(config.images.popup.reward, config.accuracy.image_similarity, 1, 1, screenW, screenH, 0)
+        if rewardX ~= -1 and rewardY ~= -1 then
+            logger.info("Đóng popup nâng cấp phần thưởng sau khi claim - lần " .. i)
+            tap(config.popup_close.reward[1], config.popup_close.reward[2])
+            mSleep(1000)
+        end
     end
-    touchUp(1, midX, endY)
-    mSleep(3000)
-    
-    -- Vuốt lần 2
-    touchDown(1, midX, startY)
-    mSleep(100)
-    for i = 1, 10 do
-        local moveY = startY - (i * (startY - endY) / 10)
-        touchMove(1, midX, moveY)
-        mSleep(10)
-    end
-    touchUp(1, midX, endY)
-    mSleep(3000)
 
-    while not liveLoaded and loadAttempt < maxLoadAttempts do
-        loadAttempt = loadAttempt + 1
-        liveLoaded, _ = rewards_live.waitForLiveScreen()
-        
-        if not liveLoaded then
-            toast("Màn hình live chưa load, chờ 3s và kiểm tra lại...")
-            mSleep(3000)
+    -- Kiểm tra 3 lần cho popup nhiệm vụ
+    for i = 1, 3 do
+        local missionX, missionY = findImageInRegionFuzzy(config.images.popup.mission, config.accuracy.image_similarity, 1, 1, screenW, screenH, 0)
+        if missionX ~= -1 and missionY ~= -1 then
+            logger.info("Đóng popup nhiệm vụ - lần " .. i)
+            tap(config.popup_close.mission[1], config.popup_close.mission[2])
+            mSleep(1000)
         end
     end
     
-    if not liveLoaded then
-        return false, "Không thể xác nhận màn hình live đã load sau nhiều lần thử"
+    -- Đợi thêm 1s trước khi tiếp tục
+    mSleep(1000)
+    
+    return true, nil
+end
+
+-- Hàm mở TikTok Lite và thực hiện các tác vụ tự động
+function autoTiktok.runTikTokLiteAutomation()
+    local width, height = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
+    
+    -- 1. Khởi tạo ứng dụng
+    local success, error = initializeApp()
+    if not success then
+        return false, error
     end
     
-
+    -- 2. Di chuyển đến màn hình xem live
+    local navSuccess, navError = navigateToLiveStream()
+    if not navSuccess then
+        return false, navError
+    end
+    
+    -- 3. Đợi để giao diện ổn định
+    mSleep(config.timing.ui_stabilize * 1000)
+    
+    -- 4. Vuốt để chuyển sang 1 live stream khác (tránh live stream đầu tiên)
+    local switchSuccess, switchError = rewards_live.switchToNextStream(1)
+    if not switchSuccess then
+        return false, switchError
+    end
+    
     -- 5. Check và click vào nút phần thưởng
     local rewardTapped = false
     local rewardError = nil
@@ -101,12 +118,12 @@ function autoTiktok.runTikTokLiteAutomation()
     
     while not rewardTapped and rewardAttempt < maxRewardAttempts do
         rewardAttempt = rewardAttempt + 1
-        toast("Tìm nút phần thưởng, lần thử " .. rewardAttempt .. "/" .. maxRewardAttempts)
+        logger.info("Tìm nút phần thưởng, lần thử " .. rewardAttempt .. "/" .. maxRewardAttempts)
         
         rewardTapped, rewardError = rewards_live.tapRewardButton()
         
         if rewardTapped then
-            toast("Đã bấm vào nút phần thưởng")
+            logger.info("Đã bấm vào nút phần thưởng")
             break
         else
             mSleep(1500)  -- Chờ 1.5s trước khi thử lại
@@ -119,7 +136,7 @@ function autoTiktok.runTikTokLiteAutomation()
     
     -- 6. Chờ màn hình giao diện nhiệm vụ phần thưởng load xong
     local waitTime = config.timing.reward_click_wait or 8
-    toast("Chờ " .. waitTime .. "s để giao diện phần thưởng load...")
+    logger.info("Chờ " .. waitTime .. "s để giao diện phần thưởng load...")
     mSleep(waitTime * 1000)
     
     -- 7. Thực hiện kéo xuống bên dưới (vuốt từ dưới đi lên)
@@ -178,38 +195,15 @@ function autoTiktok.runTikTokLiteAutomation()
             
             -- Nếu claim 3 lần liên tiếp <45s thì báo lỗi something went wrong và đổi acc
             if #recentClaimTimes == 3 and recentClaimTimes[3] ~= nil and recentClaimTimes[1] ~= nil and (recentClaimTimes[3] - recentClaimTimes[1]) < 45 then
-                toast("Lỗi Something went wrong")
+                logger.warning("Lỗi Something went wrong")
                 return false, "Lỗi Something went wrong"
             end
             
             -- Đợi sau khi bấm nút claim
             mSleep(2000)
             
-            -- Kiểm tra popup Reward upgraded sau mỗi lần claim thành công
-            local screenW, screenH = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
-            
-            -- Kiểm tra 3 lần cho popup nâng cấp phần thưởng
-            for i = 1, 3 do
-                local rewardX, rewardY = findImageInRegionFuzzy("popup2.png", 90, 1, 1, screenW, screenH, 0)
-                if rewardX ~= -1 and rewardY ~= -1 then
-                    toast("Đóng popup nâng cấp phần thưởng sau khi claim - lần " .. i)
-                    tap(357, 1033)
-                    mSleep(1000)
-                end
-            end
-
-            -- Kiểm tra 3 lần cho popup nhiệm vụ
-            for i = 1, 3 do
-                local missionX, missionY = findImageInRegionFuzzy("popupMission.png", 90, 1, 1, screenW, screenH, 0)
-                if missionX ~= -1 and missionY ~= -1 then
-                    toast("Đóng popup nhiệm vụ - lần " .. i)
-                    tap(375, 1059)
-                    mSleep(1000)
-                end
-            end
-            
-            -- Đợi thêm 1s trước khi kiểm tra nút complete
-            mSleep(1000)
+            -- Xử lý các popup sau khi claim
+            handlePopupsAfterClaim()
             
             -- Kiểm tra nút complete sau khi claim thành công
             completeFound, _, _, _ = rewards_live.checkCompleteButton()
@@ -219,38 +213,16 @@ function autoTiktok.runTikTokLiteAutomation()
             end
         end
         
-        -- -- 9. Trong 250s đầu check popupMission.png
-        -- local currentTime = os.time()
-        
-        -- if firstClaimTime ~= nil and 
-        --    (currentTime - firstClaimTime <= 250) and
-        --    (lastPopupCheckTime == 0 or currentTime - lastPopupCheckTime >= 3) then
-            
-        --     -- Cập nhật thời gian kiểm tra popup
-        --     lastPopupCheckTime = currentTime
-            
-        --     -- Lấy kích thước màn hình 
-        --     local screenW, screenH = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
-            
-        --     -- Kiểm tra popup nhiệm vụ
-        --     local missionX, missionY = findImageInRegionFuzzy("popupMission.png", 90, 1, 1, screenW, screenH, 0)
-        --     if missionX ~= -1 and missionY ~= -1 then
-        --         toast("Đóng popup nhiệm vụ")
-        --         tap(375, 1059)
-        --         mSleep(1000)
-        --     end
-        -- end
-        
         -- 10. Nếu trong 15s không thấy nút claim, check nút phần thưởng
         if lastClaimFoundTime ~= nil and os.time() - lastClaimFoundTime >= 15 then
             -- Kiểm tra nút phần thưởng - nếu có thì phiên live đã kết thúc
             local rewardFound, rx, ry, _ = rewards_live.checkRewardButton()
             
             if rewardFound then
-                toast("Tìm thấy nút phần thưởng - phiên live hiện tại đã kết thúc")
+                logger.info("Tìm thấy nút phần thưởng - phiên live hiện tại đã kết thúc")
                 
                 -- Vuốt để chuyển sang live stream khác
-                toast("Vuốt xuống stream khác...")
+                logger.info("Vuốt xuống stream khác...")
 
                 touchDown(1, midX, startY)
                 mSleep(100)
@@ -264,7 +236,7 @@ function autoTiktok.runTikTokLiteAutomation()
                 mSleep(2000)
                 
                 -- Tìm và bấm vào nút phần thưởng
-                toast("Tìm và bấm vào nút phần thưởng ở stream mới...")
+                logger.info("Tìm và bấm vào nút phần thưởng ở stream mới...")
                 local rewardPressed, rewardError = rewards_live.tapRewardButton()
                 
                 if rewardPressed then
@@ -292,116 +264,22 @@ function autoTiktok.runTikTokLiteAutomation()
                     -- Cập nhật thời gian claim để tiếp tục vòng lặp
                     lastClaimFoundTime = os.time()
                 else
-                    toast("Không tìm thấy nút phần thưởng ở stream mới")
+                    logger.warning("Không tìm thấy nút phần thưởng ở stream mới")
                 end
             end
         end
         
-        -- Chờ đến lần kiểm tra claim tiếp theo (10s một lần)
+        -- Kiểm tra thời gian chạy tổng cộng, nếu vượt quá giới hạn thì dừng
+        if os.time() - monitorStartTime > config.limits.account_runtime then
+            logger.warning("Đã vượt quá thời gian giới hạn chạy cho một tài khoản")
+            return false, "Đã vượt quá thời gian giới hạn chạy"
+        end
+        
+        -- Chờ đến lần kiểm tra claim tiếp theo (5s một lần)
         mSleep(claimCheckInterval * 1000)
     end
     
     return true, "Hoàn thành nhiệm vụ thành công"
-end
-
--- Hàm ghi log kết quả vào file analysis.txt
-function autoTiktok.logResult(account, accountName, success, reason)
-    local outputFolder = "/private/var/mobile/Media/TouchSprite/lua"
-    local analysisFile = io.open(outputFolder .. "/analysis.txt", "a")
-    
-    if analysisFile then
-        local currentTime = os.date("%Y-%m-%d %H:%M:%S")
-        local status = success and "successfully" or "failed"
-        
-        -- Thông tin cơ bản luôn được ghi
-        local logEntry = account .. ":" .. accountName .. " " .. status .. " " .. currentTime
-        
-        -- Nếu failed, ghi chi tiết hơn về lỗi
-        if not success then
-            -- Thêm dòng mới và thụt lề để dễ đọc
-            logEntry = logEntry .. "\n    ERROR: " .. reason
-            
-            -- Thêm thông tin về thiết bị
-            local deviceInfo = "Unknown"
-            if getDeviceInfo then
-                local info = getDeviceInfo()
-                if info then
-                    deviceInfo = info.model or "Unknown model"
-                end
-            end
-            logEntry = logEntry .. "\n    DEVICE: " .. deviceInfo
-            
-            -- Thêm thông tin về màn hình
-            local width, height = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
-            logEntry = logEntry .. "\n    SCREEN: " .. width .. "x" .. height
-            
-            -- Thêm thông tin về phiên bản iOS nếu có
-            local iosVer = getOSType()
-            if iosVer then
-                logEntry = logEntry .. "\n    OS: " .. iosVer
-            end
-            
-            -- Lấy thông tin về bộ nhớ nếu có
-            if getMemoryInfo then
-                local mem = getMemoryInfo()
-                if mem then
-                    -- Kiểm tra xem trường 'used' và 'free' có tồn tại không
-                    local usedMem = "Unknown"
-                    local freeMem = "Unknown"
-                    
-                    if mem.used and type(mem.used) == "number" then
-                        usedMem = math.floor(mem.used/1024/1024) .. "MB"
-                    end
-                    
-                    if mem.free and type(mem.free) == "number" then
-                        freeMem = math.floor(mem.free/1024/1024) .. "MB"
-                    end
-                    
-                    logEntry = logEntry .. "\n    MEMORY: Used " .. usedMem .. ", Free " .. freeMem
-                end
-            end
-            
-            -- Thêm thời gian xảy ra lỗi (số giây từ khi script bắt đầu chạy)
-            local runningTime = os.time() - _G.scriptStartTime
-            if _G.scriptStartTime then
-                logEntry = logEntry .. "\n    RUNTIME: " .. runningTime .. " giây"
-            end
-            
-            -- Chụp ảnh màn hình nếu có lỗi và lưu đường dẫn
-            local screenshotPath = nil
-            local timestamp = os.date("%Y%m%d_%H%M%S")
-            local ssFolder = "/private/var/mobile/Media/TouchSprite/screenshots"
-            
-            -- Tạo thư mục nếu chưa tồn tại
-            os.execute("mkdir -p '" .. ssFolder .. "'")
-            
-            local ssFilename = account .. "_" .. timestamp .. ".png"
-            screenshotPath = ssFolder .. "/" .. ssFilename
-            
-            -- Chụp ảnh màn hình
-            snapshot(screenshotPath, 0, 0, width, height)
-            
-            -- Thêm đường dẫn ảnh vào log
-            logEntry = logEntry .. "\n    SCREENSHOT: " .. screenshotPath .. "\n"
-        else
-            -- Nếu thành công, chỉ thêm lý do
-            logEntry = logEntry .. ": " .. reason
-        end
-        
-        -- Ghi dữ liệu vào file
-        analysisFile:write(logEntry .. "\n")
-        analysisFile:close()
-        
-        return true
-    else
-        toast("Không thể ghi vào file analysis.txt")
-        return false
-    end
-end
-
--- Thêm theo dõi thời gian bắt đầu chạy script
-if not _G.scriptStartTime then
-    _G.scriptStartTime = os.time()
 end
 
 return autoTiktok 

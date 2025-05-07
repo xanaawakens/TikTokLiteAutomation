@@ -11,8 +11,8 @@
   - Màu sắc kiểm tra
   - Đường dẫn lưu trữ
   - Cài đặt ghi log
-  
-  Phiên bản: 1.1.0 (Cập nhật: Cải tiến cấu trúc và thêm tham số mới)
+  - Đường dẫn hình ảnh popup (đã tập trung hóa)
+  - Tọa độ đóng popup (đã tập trung hóa)
 ]]
 
 -- Lấy kích thước màn hình để tính toán tọa độ tương đối
@@ -283,6 +283,25 @@ local config = {
         backup_numbers = {1, 2, 3, 4, 5},          -- Các số backup mặc định
         max_backup_number = 50,                    -- Số backup tối đa
         account_select_coord = {scaleCoord(356, 478)} -- Tọa độ để chọn tài khoản
+    },
+
+    -- Đường dẫn hình ảnh
+    images = {
+        -- Popup images
+        popup = {
+            add_friends = "popupAddFriends.png",
+            general = "popup1.png",
+            reward = "popup2.png",
+            mission = "popupMission.png"
+        }
+    },
+
+    -- Tọa độ đóng popup
+    popup_close = {
+        add_friends = {scaleCoord(80, 1270)},  -- Tọa độ đóng popup Add Friends
+        reward = {scaleCoord(357, 1033)},      -- Tọa độ đóng popup Reward
+        mission = {scaleCoord(375, 1059)},     -- Tọa độ đóng popup Mission
+        general = nil                          -- Sử dụng vuốt thay vì tọa độ cụ thể
     }
 }
 
@@ -295,6 +314,9 @@ config.reward_button_matrix_1 = config.color_patterns.reward_button_1
 config.reward_button_matrix_2 = config.color_patterns.reward_button_2
 config.claim_button_matrix = config.color_patterns.claim_button
 config.complete_button_matrix = config.color_patterns.complete_button
+
+-- Cập nhật config.timing để thêm các giá trị bị hardcode
+config.timing.popup_check_interval = config.timing.popup_check_delay or 0.2  -- Thời gian giữa các lần kiểm tra popup
 
 -- Trả về đối tượng cấu hình
 return config

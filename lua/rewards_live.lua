@@ -11,9 +11,14 @@
 require("TSLib")
 local config = require("config")
 local utils = require("utils")
+local logger = require("logger")
+local errorHandler = require("error_handler")
 
 -- Khởi tạo module
 local rewardsLive = {}
+
+-- Tên module để sử dụng trong log
+local MODULE_NAME = "rewards_live"
 
 -- Thời gian chờ (đưa vào config.lua nếu chưa có)
 local TIMING = {
@@ -23,44 +28,38 @@ local TIMING = {
     ACTION_VERIFICATION = config.timing.action_verification or 3  -- Thời gian chờ để xác minh hành động
 }
 
--- Hàm bắt lỗi thực thi an toàn
-local function safeExecute(func, ...)
-    local success, result = pcall(func, ...)
-    if not success then
-        return false, "Lỗi thực thi: " .. tostring(result)
-    end
-    return true, result
-end
+-- Mã lỗi cụ thể cho module này
+local ERROR = {
+    BUTTON_NOT_FOUND = errorHandler.ERROR_CODE[errorHandler.ERROR_GROUP.UI].ELEMENT_NOT_FOUND,
+    TAP_FAILED = errorHandler.ERROR_CODE[errorHandler.ERROR_GROUP.UI].TAP_FAILED,
+    VERIFICATION_FAILED = errorHandler.ERROR_CODE[errorHandler.ERROR_GROUP.UI].SCREEN_MISMATCH,
+    TIMEOUT = errorHandler.ERROR_CODE[errorHandler.ERROR_GROUP.GENERAL].TIMEOUT
+}
 
 -- Hàm tìm kiếm một nút trên giao diện bằng mẫu màu
 local function findButton(matrix, region, description)
-    local success, result = safeExecute(utils.findColorPattern, matrix, region)
+    local success, result, error = utils.findColorPattern(matrix, region)
     
     if not success then
-        return false, 0, 0, "Lỗi khi tìm " .. description .. ": " .. result
+        local errorObj = errorHandler.createError(
+            ERROR.BUTTON_NOT_FOUND,
+            "Không thể tìm " .. description,
+            {details = error}
+        )
+        return false, 0, 0, errorObj
     end
     
-    -- Xử lý kết quả trả về từ findColorPattern trực tiếp thay vì sử dụng unpack
     if result then
-        local found = result
-        local x = 0
-        local y = 0
-        
-        -- Trong utils.findColorPattern, nếu tìm thấy, trả về true, x, y, nil
-        if type(result) == "boolean" and result == true then
-            -- Trong trường hợp này, kết quả là các giá trị riêng lẻ
-            -- success = true, result = true (found), arg3 = x, arg4 = y
-            _, found, x, y = pcall(utils.findColorPattern, matrix, region)
-        end
-        
-        if found then
-            nLog("Đã tìm thấy " .. description .. " tại " .. x .. "," .. y)
-            return true, x, y, nil
-        end
+        logger.debug("Đã tìm thấy " .. description .. " tại " .. (result.x or 0) .. "," .. (result.y or 0))
+        return true, result.x, result.y, nil
     end
     
-    nLog("Không tìm thấy " .. description)
-    return false, 0, 0, "Không tìm thấy " .. description
+    logger.debug("Không tìm thấy " .. description)
+    local errorObj = errorHandler.createError(
+        ERROR.BUTTON_NOT_FOUND,
+        "Không tìm thấy " .. description
+    )
+    return false, 0, 0, errorObj
 end
 
 -- Hàm chung để tap vào nút với xác minh hành động
@@ -69,18 +68,42 @@ local function tapButton(checkFunc, tapAction, verifyFunc, description)
     local found, x, y, error = checkFunc()
     
     if not found then
-        return false, error or "Không tìm thấy " .. description
+        -- Nếu error đã là đối tượng lỗi thì sử dụng nó, nếu không tạo mới
+        if type(error) ~= "table" or not error.code then
+            error = errorHandler.createError(
+                ERROR.BUTTON_NOT_FOUND,
+                "Không tìm thấy " .. description,
+                {error = error}
+            )
+        end
+        return false, error
     end
     
     -- Thực hiện tap
     if tapAction then
-        local tapSuccess, tapError = safeExecute(tapAction, x, y)
+        local tapSuccess, tapResult, tapError = utils.retryOperation(function()
+            return tapAction(x, y)
+        end, 3, 500)
+        
         if not tapSuccess then
-            return false, "Lỗi khi tap vào " .. description .. ": " .. tapError
+            local errorObj = errorHandler.createError(
+                ERROR.TAP_FAILED,
+                "Lỗi khi tap vào " .. description,
+                {error = tapError}
+            )
+            return false, errorObj
         end
     else
         -- Mặc định sử dụng utils.tapWithConfig
-        utils.tapWithConfig(x, y)
+        local tapSuccess, _, tapError = utils.tapWithConfig(x, y, description)
+        if not tapSuccess then
+            local errorObj = errorHandler.createError(
+                ERROR.TAP_FAILED,
+                "Lỗi khi tap vào " .. description,
+                {error = tapError}
+            )
+            return false, errorObj
+        end
     end
     
     -- Đợi một khoảng thời gian cho UI ổn định
@@ -88,17 +111,19 @@ local function tapButton(checkFunc, tapAction, verifyFunc, description)
     
     -- Xác minh hành động nếu có hàm xác minh
     if verifyFunc then
-        local verifySuccess, verifyError = safeExecute(verifyFunc)
-        if not verifySuccess then
-            return false, "Không thể xác minh sau khi tap vào " .. description .. ": " .. verifyError
-        end
+        local verifySuccess, verifyResult, verifyError = utils.retryOperation(verifyFunc, 3, 500)
         
         if not verifySuccess then
-            return false, "Không thể xác minh sau khi tap vào " .. description
+            local errorObj = errorHandler.createError(
+                ERROR.VERIFICATION_FAILED,
+                "Không thể xác minh sau khi tap vào " .. description,
+                {error = verifyError}
+            )
+            return false, errorObj
         end
     end
     
-    toast("Đã tap vào " .. description)
+    logger.info("Đã tap vào " .. description)
     return true, nil
 end
 
@@ -113,11 +138,13 @@ function rewardsLive.tapLiveButton()
     mSleep(TIMING.LIVE_BUTTON_SEARCH * 1000)
     
     -- Kiểm tra và đóng popup nếu cần
-    local popupClosed = utils.checkAndClosePopup()
+    local popupClosed, popupError = utils.checkAndClosePopup()
     if popupClosed then
-        toast("Đã đóng popup, tiếp tục bấm nút live sau " .. TIMING.UI_STABILIZE .. " giây")
+        logger.info("Đã đóng popup, tiếp tục bấm nút live sau " .. TIMING.UI_STABILIZE .. " giây")
         mSleep(TIMING.UI_STABILIZE * 1000)
-        end
+    elseif popupError then
+        logger.warning("Lỗi khi xử lý popup: " .. popupError)
+    end
     
     -- Sử dụng hàm chung tapButton để tap vào nút live
     local success, error = tapButton(
@@ -126,6 +153,10 @@ function rewardsLive.tapLiveButton()
         nil,  -- Không cần xác minh thêm
         "nút xem live"
     )
+    
+    if not success and error then
+        errorHandler.logError(error, MODULE_NAME)
+    end
     
     return success, error
 end
@@ -138,22 +169,32 @@ function rewardsLive.waitForLiveScreen(timeout)
     
     while os.time() - startTime < timeout do
         -- Kiểm tra màn hình live đã load bằng ma trận màu
-        local success, result = safeExecute(utils.findColorPattern, config.in_live_matrix)
+        local success, result, error = utils.findColorPattern(config.in_live_matrix)
         
         if not success then
-            return false, "Lỗi khi kiểm tra màn hình live: " .. result
+            local errorObj = errorHandler.createError(
+                ERROR.VERIFICATION_FAILED,
+                "Lỗi khi kiểm tra màn hình live",
+                {error = error}
+            )
+            errorHandler.logError(errorObj, MODULE_NAME)
+            return false, errorObj
         end
         
         if result then
-            toast("Đã xác nhận màn hình live đã load")
+            logger.info("Đã xác nhận màn hình live đã load")
             return true, nil
         end
         
         mSleep(1000) -- Kiểm tra mỗi giây
     end
     
-    toast("Không thể xác nhận màn hình live đã load trong " .. timeout .. " giây")
-    return false, "Timeout: Không thể xác nhận màn hình live đã load trong " .. timeout .. " giây"
+    local errorObj = errorHandler.createError(
+        ERROR.TIMEOUT,
+        "Không thể xác nhận màn hình live đã load trong " .. timeout .. " giây"
+    )
+    errorHandler.logError(errorObj, MODULE_NAME)
+    return false, errorObj
 end
 
 -- Hàm kiểm tra nút phần thưởng trong live
@@ -181,7 +222,11 @@ function rewardsLive.checkRewardButton()
     end
     
     -- Không tìm thấy cả hai nút
-    return false, 0, 0, "Không tìm thấy nút phần thưởng (cả hai mẫu đều không khớp)"
+    local errorObj = errorHandler.createError(
+        ERROR.BUTTON_NOT_FOUND,
+        "Không tìm thấy nút phần thưởng"
+    )
+    return false, 0, 0, errorObj
 end
 
 -- Hàm bấm vào nút phần thưởng
@@ -194,6 +239,10 @@ function rewardsLive.tapRewardButton()
         "nút phần thưởng"
     )
         
+    if not success and error then
+        errorHandler.logError(error, MODULE_NAME)
+    end
+    
     return success, error
 end
 
@@ -215,13 +264,18 @@ function rewardsLive.tapClaimButton()
     local success, error = tapButton(
         rewardsLive.checkClaimButton,
         function(x, y)
-            utils.tapWithConfig(x, y)
-        toast("Claim thành công!")
+            local tapSuccess, _, tapError = utils.tapWithConfig(x, y, "nút claim")
+            logger.info("Claim thành công!")
+            return tapSuccess, nil, tapError
         end,
         nil,  -- Không cần xác minh thêm
         "nút claim"
     )
         
+    if not success and error then
+        errorHandler.logError(error, MODULE_NAME)
+    end
+    
     return success, error
 end
 
@@ -247,7 +301,45 @@ function rewardsLive.tapCompleteButton()
         "nút complete"
     )
     
+    if not success and error then
+        errorHandler.logError(error, MODULE_NAME)
+    end
+    
     return success, error
+end
+
+-- Thực hiện vuốt để chuyển sang live stream khác
+function rewardsLive.switchToNextStream(count)
+    count = count or 1
+    local width, height = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
+    local startY = math.floor(height * 0.9)   
+    local endY = math.floor(height * 0.6)   
+    local midX = math.floor(width / 2)
+    
+    for i = 1, count do
+        logger.info("Vuốt sang stream thứ " .. i)
+        
+        local swipeSuccess, _, swipeError = utils.swipeWithConfig(midX, startY, midX, endY, 500, "sang stream tiếp theo")
+        if not swipeSuccess then
+            local errorObj = errorHandler.createError(
+                errorHandler.ERROR_CODE[errorHandler.ERROR_GROUP.UI].SWIPE_FAILED,
+                "Không thể vuốt sang stream tiếp theo",
+                {error = swipeError}
+            )
+            errorHandler.logError(errorObj, MODULE_NAME)
+            return false, errorObj
+        end
+        
+        mSleep(3000)
+    end
+    
+    -- Kiểm tra live screen đã load sau khi vuốt
+    local liveLoaded, loadError = rewardsLive.waitForLiveScreen()
+    if not liveLoaded then
+        return false, loadError
+    end
+    
+    return true, nil
 end
 
 -- Xuất các hàm
@@ -261,5 +353,7 @@ return {
     tapClaimButton = rewardsLive.tapClaimButton,
     checkCompleteButton = rewardsLive.checkCompleteButton,
     tapCompleteButton = rewardsLive.tapCompleteButton,
+    switchToNextStream = rewardsLive.switchToNextStream,
     checkAndClosePopup = utils.checkAndClosePopup
 }
+
