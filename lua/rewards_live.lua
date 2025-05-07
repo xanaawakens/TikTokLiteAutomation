@@ -356,17 +356,14 @@ end
 -- Thực hiện vuốt để chuyển sang live stream khác
 function rewardsLive.switchToNextStream(count, suppressNotification)
     count = count or 1
-    local width, height = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
-    local startY = math.floor(height * 0.9)   
-    local endY = math.floor(height * 0.6)   
-    local midX = math.floor(width / 2)
     
     for i = 1, count do
         if not suppressNotification then
             logger.info("Vuốt sang stream thứ " .. i, suppressNotification)
         end
         
-        local swipeSuccess, _, swipeError = utils.swipeWithConfig(midX, startY, midX, endY, 500, "sang stream tiếp theo")
+        -- Use utils.swipeNextVideo instead of manual implementation
+        local swipeSuccess, _, swipeError = utils.swipeNextVideo()
         if not swipeSuccess then
             if not suppressNotification then
                 local errorObj = errorHandler.createError(
@@ -404,7 +401,6 @@ return {
     tapClaimButton = rewardsLive.tapClaimButton,
     checkCompleteButton = rewardsLive.checkCompleteButton,
     tapCompleteButton = rewardsLive.tapCompleteButton,
-    switchToNextStream = rewardsLive.switchToNextStream,
-    checkAndClosePopup = utils.checkAndClosePopup
+    switchToNextStream = rewardsLive.switchToNextStream
 }
 

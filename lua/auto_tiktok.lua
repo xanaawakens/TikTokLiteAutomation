@@ -114,28 +114,13 @@ function autoTiktok.runTikTokLiteAutomation()
     -- if not switchSuccess then
     --     return false, switchError
     -- end
-    local startY = math.floor(height * 0.9)  
-    local endY = math.floor(height * 0.6)   
-    local midX = math.floor(width / 2)     
-    touchDown(1, midX, startY)
-    mSleep(100)
-    for i = 1, 10 do
-        local moveY = startY - (i * (startY - endY) / 10)
-        touchMove(1, midX, moveY)
-        mSleep(10)
-    end
-    touchUp(1, midX, endY)
+    -- Replace manual swipe with utils function
+    utils.swipeNextVideo()
     logger.info("Vuốt xuống stream khác...")
-
-    touchDown(1, midX, startY)
-    mSleep(100)
-    for i = 1, 10 do
-        local moveY = startY - (i * (startY - endY) / 10)
-        touchMove(1, midX, moveY)
-        mSleep(10)
-    end
-    touchUp(1, midX, endY)
-
+    
+    -- Second swipe to ensure we're in a good live stream
+    utils.swipeNextVideo()
+    
     mSleep(3000)
     
     -- 5. Check và click vào nút phần thưởng
@@ -264,15 +249,9 @@ function autoTiktok.runTikTokLiteAutomation()
                 
                 -- Vuốt để chuyển sang live stream khác
                 logger.info("Vuốt xuống stream khác...")
-
-                touchDown(1, midX, startY)
-                mSleep(100)
-                for i = 1, 10 do
-                    local moveY = startY - (i * (startY - endY) / 10)
-                    touchMove(1, midX, moveY)
-                    mSleep(10)
-                end
-                touchUp(1, midX, endY)
+                
+                -- Replace manual swipe with utils function
+                utils.swipeNextVideo()
                 
                 mSleep(2000)
                 
@@ -285,14 +264,8 @@ function autoTiktok.runTikTokLiteAutomation()
                     mSleep((config.timing.reward_click_wait * 0.75) * 1000)
                     
                     -- Thực hiện vuốt mạnh từ dưới lên
-                    touchDown(1, midX, startY)
-                    mSleep(100)
-                    for i = 1, 10 do
-                        local moveY = startY - (i * (startY - endY) / 10)
-                        touchMove(1, midX, moveY)
-                        mSleep(10)
-                    end
-                    touchUp(1, midX, endY)
+                    -- Replace manual swipe with utils function
+                    utils.swipeNextVideo()
                     
                     mSleep(1500) -- giảm từ 2000ms xuống 1500ms
                     
