@@ -147,6 +147,16 @@ function autoTiktok.runTikTokLiteAutomation()
         return false, rewardError or "Không tìm thấy nút phần thưởng sau nhiều lần thử"
     end
     
+    -- Kiểm tra và đợi cho màn hình phần thưởng load
+    logger.info("Kiểm tra xem đã vào màn hình phần thưởng chưa...")
+    local inRewardScreen, rewardScreenError = rewards_live.waitForRewardScreen()
+    if not inRewardScreen then
+        logger.warning("Không thể xác nhận đang ở màn hình phần thưởng: " .. (rewardScreenError or ""))
+        return false, "Không thể vào màn hình phần thưởng"
+    end
+    
+    logger.info("Đã vào màn hình phần thưởng thành công!")
+    
     -- 6. Chờ màn hình giao diện nhiệm vụ phần thưởng load xong
     local waitTime = config.timing.reward_click_wait or 8
     logger.info("Chờ " .. waitTime .. "s để giao diện phần thưởng load...")
@@ -260,6 +270,17 @@ function autoTiktok.runTikTokLiteAutomation()
                 local rewardPressed, rewardError = rewards_live.tapRewardButton(true)
                 
                 if rewardPressed then
+                    -- Kiểm tra và đợi cho màn hình phần thưởng load
+                    logger.info("Kiểm tra xem đã vào màn hình phần thưởng ở stream mới chưa...")
+                    local inRewardScreen, rewardScreenError = rewards_live.waitForRewardScreen(nil, true)
+                    if not inRewardScreen then
+                        logger.warning("Không thể xác nhận đang ở màn hình phần thưởng ở stream mới")
+                        -- Skip to next iteration of the while loop
+                        goto continue_main_loop
+                    end
+                    
+                    logger.info("Đã vào màn hình phần thưởng thành công ở stream mới!")
+                    
                     -- Chờ giao diện phần thưởng load (giảm xuống)
                     mSleep((config.timing.reward_click_wait * 0.75) * 1000)
                     
@@ -298,6 +319,8 @@ function autoTiktok.runTikTokLiteAutomation()
         if elapsedTime < adaptiveInterval then
             mSleep((adaptiveInterval - elapsedTime) * 1000)
         end
+        
+        ::continue_main_loop::
     end
     
     return true, "Hoàn thành nhiệm vụ thành công"

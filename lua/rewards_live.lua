@@ -390,6 +390,52 @@ function rewardsLive.switchToNextStream(count, suppressNotification)
     return true, nil
 end
 
+-- Hàm đợi và xác nhận đã vào được màn hình phần thưởng
+function rewardsLive.waitForRewardScreen(timeout, suppressNotification)
+    mSleep(TIMING.UI_STABILIZE * 1000)
+    timeout = timeout or config.timing.check_timeout
+    local startTime = os.time()
+    
+    while os.time() - startTime < timeout do
+        -- Kiểm tra màn hình phần thưởng đã load bằng ma trận màu
+        local success, result, error = utils.findColorPattern(config.color_patterns.in_reward_screen)
+        
+        if not success then
+            if not suppressNotification then
+                local errorObj = errorHandler.createError(
+                    ERROR.VERIFICATION_FAILED,
+                    "Lỗi khi kiểm tra màn hình phần thưởng",
+                    {error = error}
+                )
+                errorHandler.logError(errorObj, MODULE_NAME, suppressNotification)
+                return false, errorObj
+            else
+                return false, nil
+            end
+        end
+        
+        if result then
+            if not suppressNotification then
+                logger.info("Đã xác nhận màn hình phần thưởng đã load", suppressNotification)
+            end
+            return true, nil
+        end
+        
+        mSleep(1000) -- Kiểm tra mỗi giây
+    end
+    
+    if not suppressNotification then
+        local errorObj = errorHandler.createError(
+            ERROR.TIMEOUT,
+            "Không thể xác nhận màn hình phần thưởng đã load trong " .. timeout .. " giây"
+        )
+        errorHandler.logError(errorObj, MODULE_NAME, suppressNotification)
+        return false, errorObj
+    else
+        return false, nil
+    end
+end
+
 -- Xuất các hàm
 return {
     checkButtonLive = rewardsLive.checkButtonLive,
@@ -401,6 +447,7 @@ return {
     tapClaimButton = rewardsLive.tapClaimButton,
     checkCompleteButton = rewardsLive.checkCompleteButton,
     tapCompleteButton = rewardsLive.tapCompleteButton,
-    switchToNextStream = rewardsLive.switchToNextStream
+    switchToNextStream = rewardsLive.switchToNextStream,
+    waitForRewardScreen = rewardsLive.waitForRewardScreen
 }
 
