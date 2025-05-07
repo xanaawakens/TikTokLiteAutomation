@@ -1,3 +1,8 @@
+<!-- 
+  activeContext.md - What we're currently working on
+  This file contains information about current focus, recent changes, and next steps
+-->
+
 # Active Context
 
 ## Current Focus
@@ -64,4 +69,19 @@ The next focus areas appear to be:
 2. Document the existing codebase thoroughly
 3. Identify areas for improvement or extension
 4. Design enhancements for error recovery and logging
-5. Plan for additional reward automation implementations 
+5. Plan for additional reward automation implementations
+
+## Recent Changes
+
+- Removed time limits by setting account_runtime and total_runtime to effectively unlimited values
+- Removed backward compatibility code for old color pattern names
+- Fixed Vietnamese text encoding issues in config.lua comments
+- Fixed account reset mechanism to ensure the script correctly resets to account 1 after processing all accounts
+- Added safety mechanisms to prevent infinite loops and ensure account state is reset properly
+
+## Active Decisions and Considerations
+
+- The script should work reliably across multiple accounts without manual intervention
+- User experience should be smooth with clear logging and status updates
+- After processing all accounts, the system should properly reset to account 1 for the next run
+- The system should gracefully handle edge cases and errors 

@@ -10,6 +10,7 @@
 - ✅ Multiple account support
 - ✅ Basic error handling and recovery
 - ✅ Detailed logging with screenshots on failure
+- ✅ Reset to account 1 after processing all accounts
 
 ### Modules
 - ✅ Account management (`change_account.lua`)
