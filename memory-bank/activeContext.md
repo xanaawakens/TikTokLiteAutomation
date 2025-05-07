@@ -91,6 +91,10 @@ The next focus areas appear to be:
   - Replaced manual swipe code in auto_tiktok.lua with calls to utils.swipeNextVideo()
   - Updated rewards_live.switchToNextStream to use utils.swipeNextVideo() instead of custom swipe implementation
   - Removed redundant rewards_live.checkAndClosePopup as it was just re-exporting utils.checkAndClosePopup
+- Added reward screen verification after tapping reward button:
+  - Created new waitForRewardScreen function in rewards_live.lua to verify we're on the reward screen
+  - Added verification step in auto_tiktok.lua after tapping reward button
+  - Enhanced error handling to skip to next stream if reward screen verification fails
 
 ## Active Decisions and Considerations
 
