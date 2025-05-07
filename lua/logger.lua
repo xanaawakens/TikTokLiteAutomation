@@ -85,7 +85,12 @@ function logger.init(options)
 end
 
 -- Hàm ghi log nội bộ 
-function logger._log(level, message)
+function logger._log(level, message, suppress)
+    -- Skip logging completely if suppress is true
+    if suppress then
+        return
+    end
+    
     if not settings.enabled or level < settings.level then
         return
     end
@@ -130,20 +135,20 @@ function logger._log(level, message)
 end
 
 -- Các hàm ghi log theo cấp độ
-function logger.debug(message)
-    logger._log(logger.LEVEL.DEBUG, message)
+function logger.debug(message, suppress)
+    logger._log(logger.LEVEL.DEBUG, message, suppress)
 end
 
-function logger.info(message)
-    logger._log(logger.LEVEL.INFO, message)
+function logger.info(message, suppress)
+    logger._log(logger.LEVEL.INFO, message, suppress)
 end
 
-function logger.warning(message)
-    logger._log(logger.LEVEL.WARNING, message)
+function logger.warning(message, suppress)
+    logger._log(logger.LEVEL.WARNING, message, suppress)
 end
 
-function logger.error(message)
-    logger._log(logger.LEVEL.ERROR, message)
+function logger.error(message, suppress)
+    logger._log(logger.LEVEL.ERROR, message, suppress)
 end
 
 -- Đóng logger khi kết thúc
@@ -173,8 +178,8 @@ function logger.setShowOnScreen(show)
 end
 
 -- Hàm trợ giúp thay thế toast
-function logger.toast(message)
-    logger.info(message)
+function logger.toast(message, suppress)
+    logger.info(message, suppress)
 end
 
 -- Tự động khởi tạo logger với cấu hình mặc định

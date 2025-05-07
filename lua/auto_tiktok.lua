@@ -185,7 +185,7 @@ function autoTiktok.runTikTokLiteAutomation()
     mSleep(2000)
     
     -- 8. Check nút complete lần 1
-    local completeFound, _, _, _ = rewards_live.checkCompleteButton()
+    local completeFound, _, _, _ = rewards_live.checkCompleteButton(true)
     
     if completeFound then
         return true, "Hoàn thành nhiệm vụ thành công ngay sau lần đầu kiểm tra"
@@ -205,7 +205,7 @@ function autoTiktok.runTikTokLiteAutomation()
     while true do
         -- Kiểm tra và bấm nút Claim
         local startTime = os.time()
-        claimFound, claimError = rewards_live.tapClaimButton()
+        claimFound, claimError = rewards_live.tapClaimButton(true)
         
         if claimFound then
             consecutiveFailures = 0
@@ -226,7 +226,7 @@ function autoTiktok.runTikTokLiteAutomation()
             handlePopupsAfterClaim()
             
             -- Kiểm tra nút complete sau khi claim thành công
-            completeFound, _, _, _ = rewards_live.checkCompleteButton()
+            completeFound, _, _, _ = rewards_live.checkCompleteButton(true)
             
             if completeFound then
                 return true, "Hoàn thành nhiệm vụ thành công sau khi claim"
@@ -250,14 +250,14 @@ function autoTiktok.runTikTokLiteAutomation()
             if consecutiveFailures > 5 then
                 -- Nếu không tìm thấy claim sau nhiều lần, tăng khoảng cách để giảm tải CPU
                 adaptiveInterval = math.min(3, claimCheckInterval + 0.5 * math.floor(consecutiveFailures / 5))
-                logger.debug("Điều chỉnh khoảng thời gian kiểm tra claim lên " .. adaptiveInterval .. "s sau " .. consecutiveFailures .. " lần thất bại")
+                logger.debug("Điều chỉnh khoảng thời gian kiểm tra claim lên " .. adaptiveInterval .. "s sau " .. consecutiveFailures .. " lần thất bại", true)
             end
         end
         
         -- Xử lý stream kết thúc (kiểm tra hiệu quả hơn sau nhiều lần không tìm thấy claim)
         if lastClaimFoundTime ~= nil and os.time() - lastClaimFoundTime >= 15 then
             -- Kiểm tra nút phần thưởng - nếu có thì phiên live đã kết thúc
-            local rewardFound, rx, ry, _ = rewards_live.checkRewardButton()
+            local rewardFound, rx, ry, _ = rewards_live.checkRewardButton(true)
             
             if rewardFound then
                 logger.info("Tìm thấy nút phần thưởng - phiên live hiện tại đã kết thúc")
@@ -278,7 +278,7 @@ function autoTiktok.runTikTokLiteAutomation()
                 
                 -- Tìm và bấm vào nút phần thưởng
                 logger.info("Tìm và bấm vào nút phần thưởng ở stream mới...")
-                local rewardPressed, rewardError = rewards_live.tapRewardButton()
+                local rewardPressed, rewardError = rewards_live.tapRewardButton(true)
                 
                 if rewardPressed then
                     -- Chờ giao diện phần thưởng load (giảm xuống)
@@ -308,7 +308,7 @@ function autoTiktok.runTikTokLiteAutomation()
                     -- Reset lại số lần thất bại liên tiếp
                     consecutiveFailures = 0
                 else
-                    logger.warning("Không tìm thấy nút phần thưởng ở stream mới")
+                    logger.warning("Không tìm thấy nút phần thưởng ở stream mới", true)
                 end
             end
         end

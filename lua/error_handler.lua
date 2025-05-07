@@ -159,7 +159,7 @@ function errorHandler.formatError(err)
 end
 
 -- Ghi nhật ký lỗi
-function errorHandler.logError(err, moduleName)
+function errorHandler.logError(err, moduleName, suppress)
     if type(err) == "string" then
         -- Tạo đối tượng lỗi nếu chỉ là chuỗi
         err = errorHandler.createError(
@@ -174,14 +174,14 @@ function errorHandler.logError(err, moduleName)
         errorMsg = "[" .. moduleName .. "] " .. errorMsg
     end
     
-    logger.error(errorMsg)
+    logger.error(errorMsg, suppress)
     
     return errorMsg
 end
 
 -- Xử lý lỗi với callback
-function errorHandler.handleError(err, callback, moduleName)
-    local errorMsg = errorHandler.logError(err, moduleName)
+function errorHandler.handleError(err, callback, moduleName, suppress)
+    local errorMsg = errorHandler.logError(err, moduleName, suppress)
     
     if callback and type(callback) == "function" then
         pcall(callback, err, errorMsg)
@@ -191,7 +191,7 @@ function errorHandler.handleError(err, callback, moduleName)
 end
 
 -- Kiểm tra và xử lý lỗi từ kết quả trả về
-function errorHandler.checkResult(success, result, errorData, moduleName)
+function errorHandler.checkResult(success, result, errorData, moduleName, suppress)
     if not success then
         local errObj
         
@@ -212,7 +212,7 @@ function errorHandler.checkResult(success, result, errorData, moduleName)
             )
         end
         
-        return errorHandler.logError(errObj, moduleName)
+        return errorHandler.logError(errObj, moduleName, suppress)
     end
     
     return nil

@@ -157,10 +157,10 @@ function rewardsLive.tapLiveButton(suppressNotification)
     -- Kiểm tra và đóng popup nếu cần
     local popupClosed, popupError = utils.checkAndClosePopup()
     if popupClosed then
-        logger.info("Đã đóng popup, tiếp tục bấm nút live sau " .. TIMING.UI_STABILIZE .. " giây")
+        logger.info("Đã đóng popup, tiếp tục bấm nút live sau " .. TIMING.UI_STABILIZE .. " giây", suppressNotification)
         mSleep(TIMING.UI_STABILIZE * 1000)
     elseif popupError and not suppressNotification then
-        logger.warning("Lỗi khi xử lý popup: " .. popupError)
+        logger.warning("Lỗi khi xử lý popup: " .. popupError, suppressNotification)
     end
     
     -- Sử dụng hàm chung tapButton để tap vào nút live
@@ -175,7 +175,7 @@ function rewardsLive.tapLiveButton(suppressNotification)
     
     -- Chỉ hiển thị thông báo lỗi nếu không suppressed
     if not success and error and not suppressNotification then
-        errorHandler.logError(error, MODULE_NAME)
+        errorHandler.logError(error, MODULE_NAME, suppressNotification)
     end
     
     return success, error
@@ -198,7 +198,7 @@ function rewardsLive.waitForLiveScreen(timeout, suppressNotification)
                     "Lỗi khi kiểm tra màn hình live",
                     {error = error}
                 )
-                errorHandler.logError(errorObj, MODULE_NAME)
+                errorHandler.logError(errorObj, MODULE_NAME, suppressNotification)
                 return false, errorObj
             else
                 return false, nil
@@ -207,7 +207,7 @@ function rewardsLive.waitForLiveScreen(timeout, suppressNotification)
         
         if result then
             if not suppressNotification then
-                logger.info("Đã xác nhận màn hình live đã load")
+                logger.info("Đã xác nhận màn hình live đã load", suppressNotification)
             end
             return true, nil
         end
@@ -220,7 +220,7 @@ function rewardsLive.waitForLiveScreen(timeout, suppressNotification)
             ERROR.TIMEOUT,
             "Không thể xác nhận màn hình live đã load trong " .. timeout .. " giây"
         )
-        errorHandler.logError(errorObj, MODULE_NAME)
+        errorHandler.logError(errorObj, MODULE_NAME, suppressNotification)
         return false, errorObj
     else
         return false, nil
@@ -279,7 +279,7 @@ function rewardsLive.tapRewardButton(suppressNotification)
         
     -- Chỉ hiển thị thông báo lỗi nếu không suppressed
     if not success and error and not suppressNotification then
-        errorHandler.logError(error, MODULE_NAME)
+        errorHandler.logError(error, MODULE_NAME, suppressNotification)
     end
     
     return success, error
@@ -306,7 +306,7 @@ function rewardsLive.tapClaimButton(suppressNotification)
         end,
         function(x, y)
             local tapSuccess, _, tapError = utils.tapWithConfig(x, y, "nút claim", config.timing.claim_tap_delay)
-            logger.info("Claim thành công!")
+            logger.info("Claim thành công!", suppressNotification)
             return tapSuccess, nil, tapError
         end,
         nil,  -- Không cần xác minh thêm
@@ -315,7 +315,7 @@ function rewardsLive.tapClaimButton(suppressNotification)
         
     -- Chỉ hiển thị thông báo lỗi nếu không suppressed
     if not success and error and not suppressNotification then
-        errorHandler.logError(error, MODULE_NAME)
+        errorHandler.logError(error, MODULE_NAME, suppressNotification)
     end
     
     return success, error
@@ -347,7 +347,7 @@ function rewardsLive.tapCompleteButton(suppressNotification)
     
     -- Chỉ hiển thị thông báo lỗi nếu không suppressed
     if not success and error and not suppressNotification then
-        errorHandler.logError(error, MODULE_NAME)
+        errorHandler.logError(error, MODULE_NAME, suppressNotification)
     end
     
     return success, error
@@ -363,7 +363,7 @@ function rewardsLive.switchToNextStream(count, suppressNotification)
     
     for i = 1, count do
         if not suppressNotification then
-            logger.info("Vuốt sang stream thứ " .. i)
+            logger.info("Vuốt sang stream thứ " .. i, suppressNotification)
         end
         
         local swipeSuccess, _, swipeError = utils.swipeWithConfig(midX, startY, midX, endY, 500, "sang stream tiếp theo")
@@ -374,7 +374,7 @@ function rewardsLive.switchToNextStream(count, suppressNotification)
                     "Không thể vuốt sang stream tiếp theo",
                     {error = swipeError}
                 )
-                errorHandler.logError(errorObj, MODULE_NAME)
+                errorHandler.logError(errorObj, MODULE_NAME, suppressNotification)
                 return false, errorObj
             else
                 return false, nil
