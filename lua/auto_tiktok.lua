@@ -127,6 +127,13 @@ function autoTiktok.runTikTokLiteAutomation()
     mSleep(3000)
     logger.info("Vuốt xuống stream khác...")
     
+    -- Kiểm tra xem live stream mới đã load xong chưa
+    local liveLoaded, loadError = rewards_live.waitForLiveScreen(8)
+    if not liveLoaded then
+        logger.warning("Không thể xác nhận live stream đã load sau khi vuốt: " .. (loadError or ""))
+        -- Thử vuốt lần nữa nếu live stream chưa load
+    end
+    
     -- Second swipe to ensure we're in a good live stream
     touchDown(1, midX, startY)
     mSleep(100)
@@ -138,6 +145,15 @@ function autoTiktok.runTikTokLiteAutomation()
     touchUp(1, midX, endY)
     
     mSleep(3000)
+    
+    -- Kiểm tra xem live stream thứ hai đã load xong chưa
+    liveLoaded, loadError = rewards_live.waitForLiveScreen(8)
+    if not liveLoaded then
+        logger.warning("Không thể xác nhận live stream thứ hai đã load sau khi vuốt: " .. (loadError or ""))
+        return false, "Không thể xác nhận live stream đã load sau khi vuốt"
+    else
+        logger.info("Đã xác nhận live stream đã load thành công")
+    end
     
     -- 5. Check và click vào nút phần thưởng
     local rewardTapped = false
@@ -173,10 +189,10 @@ function autoTiktok.runTikTokLiteAutomation()
     
     logger.info("Đã vào màn hình phần thưởng thành công!")
     
-    -- 6. Chờ màn hình giao diện nhiệm vụ phần thưởng load xong
-    local waitTime = config.timing.reward_click_wait or 8
-    logger.info("Chờ " .. waitTime .. "s để giao diện phần thưởng load...")
-    mSleep(waitTime * 1000)
+    -- -- 6. Chờ màn hình giao diện nhiệm vụ phần thưởng load xong
+    -- local waitTime = config.timing.reward_click_wait or 8
+    -- logger.info("Chờ " .. waitTime .. "s để giao diện phần thưởng load...")
+    -- mSleep(waitTime * 1000)
     
     -- 7. Thực hiện kéo xuống bên dưới (vuốt từ dưới đi lên)
     local startY = math.floor(height * 0.9)   -- Gần dưới cùng màn hình
@@ -287,6 +303,15 @@ function autoTiktok.runTikTokLiteAutomation()
                 touchUp(1, midX, endY)
                 
                 mSleep(2000)
+                
+                -- Kiểm tra xem live stream mới đã load xong chưa
+                local streamLoaded, streamError = rewards_live.waitForLiveScreen(8, true)
+                if not streamLoaded then
+                    logger.warning("Không thể xác nhận live stream đã load sau khi chuyển stream: " .. (streamError or ""))
+                    goto continue_main_loop
+                else
+                    logger.info("Đã xác nhận live stream mới đã load thành công")
+                end
                 
                 -- Tìm và bấm vào nút phần thưởng
                 logger.info("Tìm và bấm vào nút phần thưởng ở stream mới...")
