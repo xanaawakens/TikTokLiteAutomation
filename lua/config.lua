@@ -178,6 +178,20 @@ local config = {
             {63, 603, 0xffe865},
             {67, 608, 0xff9300}
         },
+
+        -- Ma trận check xem  đã trong phần thưởng hay chưa
+        in_reward_screen = {
+            {704, 738, 0xfffdee},
+            {704, 737, 0xffeb74},
+            {706, 738, 0xfff8d0},
+            {708, 738, 0xfff2a6},
+            {715, 740, 0xffee8b},
+            {715, 742, 0xffffff},
+            {723, 745, 0xffed80},
+            {726, 751, 0xffffff},
+            {730, 751, 0xffeb74},
+            {729, 757, 0xffffff}            
+        },
     
         -- Ma trận màu cho nút claim
         claim_button = {

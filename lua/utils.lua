@@ -409,16 +409,6 @@ function utils.swipeNextVideo()
     return utils.swipeWithConfig(swipe.start_x, swipe.start_y, swipe.end_x, swipe.end_y, nil, "lên để xem video tiếp theo")
 end
 
--- Vuốt từ dưới lên ở giữa màn hình (cho live stream)
-function utils.swipeBottomToMiddle()
-    local width, height = utils.getDeviceScreen()
-    local midX = math.floor(width / 2)
-    local startY = math.floor(height * 0.9)  -- Gần dưới cùng màn hình
-    local endY = math.floor(height * 0.6)    -- Khoảng giữa màn hình
-    
-    return utils.swipeWithConfig(midX, startY, midX, endY, 500, "từ dưới lên giữa màn hình")
-end
-
 -- Lấy kích thước màn hình
 function utils.getDeviceScreen()
     -- Sử dụng biến toàn cục thay vì gọi lại getScreenSize()
@@ -737,7 +727,6 @@ return {
     tapWithConfig = utils.tapWithConfig,
     swipeWithConfig = utils.swipeWithConfig,
     swipeNextVideo = utils.swipeNextVideo,
-    swipeBottomToMiddle = utils.swipeBottomToMiddle,
     
     -- Khởi tạo
     getDeviceScreen = utils.getDeviceScreen,
