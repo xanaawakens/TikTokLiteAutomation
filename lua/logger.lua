@@ -9,8 +9,29 @@
 ]]
 
 local config = require("config")
+-- Tạm thời bỏ dùng utils để tránh circular dependency
+-- local utils = require("utils")  -- Thêm utils để sử dụng safeToString
 
 local logger = {}
+
+-- Thêm hàm safeToString đơn giản trong logger để tránh phụ thuộc vào utils
+local function safeToString(value)
+    if value == nil then
+        return "nil"
+    elseif type(value) == "string" then
+        return value
+    elseif type(value) == "number" or type(value) == "boolean" then
+        return tostring(value)
+    elseif type(value) == "table" then
+        return "{table}"
+    elseif type(value) == "function" then
+        return "{function}"
+    elseif type(value) == "userdata" or type(value) == "thread" then
+        return "{" .. type(value) .. "}"
+    else
+        return "{unknown type: " .. type(value) .. "}"
+    end
+end
 
 -- Các cấp độ log
 logger.LEVEL = {
@@ -105,8 +126,11 @@ function logger._log(level, message, suppress)
     elseif level == logger.LEVEL.ERROR then levelStr = "ERROR"
     end
     
+    -- Đảm bảo message là chuỗi an toàn - sử dụng hàm local safeToString thay vì utils.safeToString
+    local safeMessage = safeToString(message)
+    
     -- Tạo chuỗi log
-    local logString = string.format("[%s] [%s] %s", timestamp, levelStr, message)
+    local logString = string.format("[%s] [%s] %s", timestamp, levelStr, safeMessage)
     
     -- Ghi vào console bằng nLog nếu có
     if type(nLog) == "function" then
@@ -116,7 +140,7 @@ function logger._log(level, message, suppress)
     -- Hiển thị trên màn hình nếu cần
     if settings.showOnScreen and level >= logger.LEVEL.INFO then
         -- Giới hạn tin nhắn hiển thị 
-        local displayMsg = message
+        local displayMsg = safeMessage
         if #displayMsg > 60 then
             displayMsg = string.sub(displayMsg, 1, 57) .. "..."
         end

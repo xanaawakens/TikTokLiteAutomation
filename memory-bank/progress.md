@@ -13,6 +13,7 @@
 - ✅ Reset to account 1 after processing all accounts
 - ✅ Complete error suppression for expected "not found" scenarios
 - ✅ Reward screen verification after tapping reward button
+- ✅ Safe string handling with utils.safeToString to prevent table concatenation errors
 
 ### Modules
 - ✅ Account management (`change_account.lua`)
@@ -81,14 +82,16 @@
 7. **~~Swipe Reliability Issues~~**: (FIXED) Replaced utils.swipeNextVideo() with direct touch-based implementation for improved reliability
 8. **~~Missing Live Stream Verification~~**: (FIXED) Added verification to ensure live streams have loaded properly after swipe operations
 9. **~~Reward Screen Loading Failures~~**: (FIXED) Added recovery mechanism when reward screen fails to load
+10. **~~Table Concatenation Errors~~**: (FIXED) Added utils.safeToString function to safely convert any value to string before concatenation
 
 ## Next Milestones
 
 ### Short Term (1-2 weeks)
-1. Complete documentation of existing codebase
-2. Implement improved error recovery for common failure cases
-3. Enhance UI detection reliability with fallback mechanisms
-4. Add video watching automation
+1. ~~Fix table concatenation errors in error handling paths~~ (COMPLETED)
+2. Complete documentation of existing codebase
+3. Implement improved error recovery for common failure cases
+4. Enhance UI detection reliability with fallback mechanisms
+5. Add video watching automation
 
 ### Medium Term (3-4 weeks)
 1. Implement daily check-in automation

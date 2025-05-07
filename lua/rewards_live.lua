@@ -36,6 +36,25 @@ local ERROR = {
     TIMEOUT = errorHandler.ERROR_CODE[errorHandler.ERROR_GROUP.GENERAL].TIMEOUT
 }
 
+-- Hàm safeToString đơn giản để tránh phụ thuộc vào utils.safeToString
+local function safeToString(value)
+    if value == nil then
+        return "nil"
+    elseif type(value) == "string" then
+        return value
+    elseif type(value) == "number" or type(value) == "boolean" then
+        return tostring(value)
+    elseif type(value) == "table" then
+        return "{table}"
+    elseif type(value) == "function" then
+        return "{function}"
+    elseif type(value) == "userdata" or type(value) == "thread" then
+        return "{" .. type(value) .. "}"
+    else
+        return "{unknown type: " .. type(value) .. "}"
+    end
+end
+
 -- Hàm tìm kiếm một nút trên giao diện bằng mẫu màu
 local function findButton(matrix, region, description, suppressNotification)
     local success, result, error = utils.findColorPattern(matrix, region)
@@ -45,7 +64,7 @@ local function findButton(matrix, region, description, suppressNotification)
             local errorObj = errorHandler.createError(
                 ERROR.BUTTON_NOT_FOUND,
                 "Không thể tìm " .. description,
-                {details = error}
+                {details = safeToString(error)}
             )
             return false, 0, 0, errorObj
         else
@@ -90,7 +109,7 @@ local function tapButton(checkFunc, tapAction, verifyFunc, description)
             error = errorHandler.createError(
                 ERROR.BUTTON_NOT_FOUND,
                 "Không tìm thấy " .. description,
-                {error = error}
+                {error = safeToString(error)}
             )
         end
         return false, error
@@ -106,7 +125,7 @@ local function tapButton(checkFunc, tapAction, verifyFunc, description)
             local errorObj = errorHandler.createError(
                 ERROR.TAP_FAILED,
                 "Lỗi khi tap vào " .. description,
-                {error = tapError}
+                {error = safeToString(tapError)}
             )
             return false, errorObj
         end
@@ -117,7 +136,7 @@ local function tapButton(checkFunc, tapAction, verifyFunc, description)
             local errorObj = errorHandler.createError(
                 ERROR.TAP_FAILED,
                 "Lỗi khi tap vào " .. description,
-                {error = tapError}
+                {error = safeToString(tapError)}
             )
             return false, errorObj
         end
@@ -134,7 +153,7 @@ local function tapButton(checkFunc, tapAction, verifyFunc, description)
             local errorObj = errorHandler.createError(
                 ERROR.VERIFICATION_FAILED,
                 "Không thể xác minh sau khi tap vào " .. description,
-                {error = verifyError}
+                {error = safeToString(verifyError)}
             )
             return false, errorObj
         end
@@ -196,7 +215,7 @@ function rewardsLive.waitForLiveScreen(timeout, suppressNotification)
                 local errorObj = errorHandler.createError(
                     ERROR.VERIFICATION_FAILED,
                     "Lỗi khi kiểm tra màn hình live",
-                    {error = error}
+                    {error = safeToString(error)}
                 )
                 errorHandler.logError(errorObj, MODULE_NAME, suppressNotification)
                 return false, errorObj
@@ -388,7 +407,7 @@ function rewardsLive.switchToNextStream(count, suppressNotification)
                 local errorObj = errorHandler.createError(
                     errorHandler.ERROR_CODE[errorHandler.ERROR_GROUP.UI].SWIPE_FAILED,
                     "Không thể vuốt sang stream tiếp theo",
-                    {error = error}
+                    {error = safeToString(error)}
                 )
                 errorHandler.logError(errorObj, MODULE_NAME, suppressNotification)
                 return false, errorObj
@@ -424,7 +443,7 @@ function rewardsLive.waitForRewardScreen(timeout, suppressNotification)
                 local errorObj = errorHandler.createError(
                     ERROR.VERIFICATION_FAILED,
                     "Lỗi khi kiểm tra màn hình phần thưởng",
-                    {error = error}
+                    {error = safeToString(error)}
                 )
                 errorHandler.logError(errorObj, MODULE_NAME, suppressNotification)
                 return false, errorObj

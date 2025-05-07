@@ -10,16 +10,44 @@ local fileManager = require("file_manager") -- Thêm module quản lý file mớ
 
 local autoTiktok = {}
 
+-- Hàm safeToString đơn giản để tránh phụ thuộc vào utils.safeToString
+local function safeToString(value)
+    if value == nil then
+        return "nil"
+    elseif type(value) == "string" then
+        return value
+    elseif type(value) == "number" or type(value) == "boolean" then
+        return tostring(value)
+    elseif type(value) == "table" then
+        return "{table}"
+    elseif type(value) == "function" then
+        return "{function}"
+    elseif type(value) == "userdata" or type(value) == "thread" then
+        return "{" .. type(value) .. "}"
+    else
+        return "{unknown type: " .. type(value) .. "}"
+    end
+end
+
 -- Khởi tạo và mở ứng dụng TikTok Lite
 local function initializeApp()
     -- Mở TikTok Lite
     local success, error = utils.openTikTokLite(false)
     
     if not success then
-        return false, "Không thể mở TikTok Lite: " .. (error or "")
+        return false, "Không thể mở TikTok Lite: " .. safeToString(error or "")
     end
     
     mSleep(3000)
+    
+    -- Kiểm tra và đóng popup Add Friends nếu xuất hiện
+    local popupClosed, popupError = utils.checkAndCloseAddFriendsPopup()
+    if popupClosed then
+        logger.info("Đã đóng popup Add Friends sau khi mở ứng dụng")
+        -- Đợi một chút sau khi đóng popup
+        mSleep(config.timing.after_popup_close * 1000)
+    end
+    
     return true, nil
 end
 
@@ -130,7 +158,7 @@ function autoTiktok.runTikTokLiteAutomation()
     -- Kiểm tra xem live stream mới đã load xong chưa
     local liveLoaded, loadError = rewards_live.waitForLiveScreen(8)
     if not liveLoaded then
-        logger.warning("Không thể xác nhận live stream đã load sau khi vuốt: " .. (loadError or ""))
+        logger.warning("Không thể xác nhận live stream đã load sau khi vuốt: " .. safeToString(loadError or ""))
         -- Thử vuốt lần nữa nếu live stream chưa load
     end
     
@@ -149,7 +177,7 @@ function autoTiktok.runTikTokLiteAutomation()
     -- Kiểm tra xem live stream thứ hai đã load xong chưa
     liveLoaded, loadError = rewards_live.waitForLiveScreen(8)
     if not liveLoaded then
-        logger.warning("Không thể xác nhận live stream thứ hai đã load sau khi vuốt: " .. (loadError or ""))
+        logger.warning("Không thể xác nhận live stream thứ hai đã load sau khi vuốt: " .. safeToString(loadError or ""))
         return false, "Không thể xác nhận live stream đã load sau khi vuốt"
     else
         logger.info("Đã xác nhận live stream đã load thành công")
@@ -183,7 +211,7 @@ function autoTiktok.runTikTokLiteAutomation()
     logger.info("Kiểm tra xem đã vào màn hình phần thưởng chưa...")
     local inRewardScreen, rewardScreenError = rewards_live.waitForRewardScreen()
     if not inRewardScreen then
-        logger.warning("Không thể xác nhận đang ở màn hình phần thưởng: " .. (rewardScreenError or ""))
+        logger.warning("Không thể xác nhận đang ở màn hình phần thưởng: " .. safeToString(rewardScreenError or ""))
         logger.info("Thực hiện quy trình khôi phục khi không load được màn hình phần thưởng...")
         
         -- 1. Bấm vào tọa độ 444, 444
@@ -207,7 +235,7 @@ function autoTiktok.runTikTokLiteAutomation()
         logger.info("Kiểm tra xem đã load được màn hình live chưa...")
         local liveScreenLoaded, liveError = rewards_live.waitForLiveScreen(8)
         if not liveScreenLoaded then
-            logger.warning("Không thể xác nhận đã vào màn hình live sau khi khôi phục: " .. (liveError or ""))
+            logger.warning("Không thể xác nhận đã vào màn hình live sau khi khôi phục: " .. safeToString(liveError or ""))
             return false, "Không thể khôi phục màn hình live sau khi gặp lỗi"
         end
         
@@ -217,7 +245,7 @@ function autoTiktok.runTikTokLiteAutomation()
         logger.info("Tìm và bấm vào nút phần thưởng lần nữa...")
         local rewardRetapped, retapError = rewards_live.tapRewardButton()
         if not rewardRetapped then
-            logger.warning("Không thể tìm thấy nút phần thưởng sau khi khôi phục: " .. (retapError or ""))
+            logger.warning("Không thể tìm thấy nút phần thưởng sau khi khôi phục: " .. safeToString(retapError or ""))
             return false, "Không thể tìm lại nút phần thưởng sau khi khôi phục"
         end
         
@@ -225,7 +253,7 @@ function autoTiktok.runTikTokLiteAutomation()
         logger.info("Kiểm tra lại màn hình phần thưởng...")
         inRewardScreen, rewardScreenError = rewards_live.waitForRewardScreen()
         if not inRewardScreen then
-            logger.warning("Vẫn không thể vào màn hình phần thưởng sau khi khôi phục: " .. (rewardScreenError or ""))
+            logger.warning("Vẫn không thể vào màn hình phần thưởng sau khi khôi phục: " .. safeToString(rewardScreenError or ""))
             return false, "Không thể vào màn hình phần thưởng sau khi khôi phục"
         end
         
@@ -347,7 +375,7 @@ function autoTiktok.runTikTokLiteAutomation()
                 -- Kiểm tra xem live stream mới đã load xong chưa
                 local streamLoaded, streamError = rewards_live.waitForLiveScreen(8, true)
                 if not streamLoaded then
-                    logger.warning("Không thể xác nhận live stream đã load sau khi chuyển stream: " .. (streamError or ""))
+                    logger.warning("Không thể xác nhận live stream đã load sau khi chuyển stream: " .. safeToString(streamError or ""))
                     goto continue_main_loop
                 else
                     logger.info("Đã xác nhận live stream mới đã load thành công")

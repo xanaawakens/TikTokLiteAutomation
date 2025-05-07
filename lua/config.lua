@@ -315,7 +315,7 @@ local config = {
 
     -- Tọa độ đóng popup
     popup_close = {
-        add_friends = {scaleCoord(80, 1270)},  -- Tọa độ đóng popup Add Friends
+        add_friends = {scaleCoord(90, 1270)},  -- Tọa độ đóng popup Add Friends
         reward = {scaleCoord(357, 1033)},      -- Tọa độ đóng popup Reward
         mission = {scaleCoord(375, 1059)},     -- Tọa độ đóng popup Mission
         general = nil                          -- Sử dụng vuốt thay vì tọa độ cụ thể
