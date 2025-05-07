@@ -129,7 +129,7 @@ end
 
 -- Hàm kiểm tra nút xem live có xuất hiện không
 function rewardsLive.checkButtonLive()
-    return findButton(config.live_matrix, config.search_regions.live_button, "nút xem live")
+    return findButton(config.color_patterns.live_button, config.search_regions.live_button, "nút xem live")
 end
 
 -- Hàm bấm vào nút xem live
@@ -169,7 +169,7 @@ function rewardsLive.waitForLiveScreen(timeout)
     
     while os.time() - startTime < timeout do
         -- Kiểm tra màn hình live đã load bằng ma trận màu
-        local success, result, error = utils.findColorPattern(config.in_live_matrix)
+        local success, result, error = utils.findColorPattern(config.color_patterns.in_live_screen)
         
         if not success then
             local errorObj = errorHandler.createError(
@@ -201,7 +201,7 @@ end
 function rewardsLive.checkRewardButton()
     -- Kiểm tra nút phần thưởng thứ nhất
     local found1, x1, y1, error1 = findButton(
-        config.reward_button_matrix_1, 
+        config.color_patterns.reward_button_1, 
         config.search_regions.reward_button, 
         "nút phần thưởng (mẫu 1)"
     )
@@ -212,7 +212,7 @@ function rewardsLive.checkRewardButton()
     
     -- Nếu không tìm thấy nút thứ nhất, kiểm tra nút thứ hai
     local found2, x2, y2, error2 = findButton(
-        config.reward_button_matrix_2, 
+        config.color_patterns.reward_button_2, 
         config.search_regions.reward_button, 
         "nút phần thưởng (mẫu 2)"
     )
@@ -255,7 +255,7 @@ function rewardsLive.checkClaimButton()
     local fullScreenRegion = {0, 0, width, height}
     
     -- Tìm kiếm nút claim dựa vào ma trận
-    return findButton(config.claim_button_matrix, fullScreenRegion, "nút claim")
+    return findButton(config.color_patterns.claim_button, fullScreenRegion, "nút claim")
 end
 
 -- Hàm bấm vào nút claim
@@ -288,7 +288,7 @@ function rewardsLive.checkCompleteButton()
     local fullScreenRegion = {0, 0, width, height}
     
     -- Tìm kiếm nút complete dựa vào ma trận
-    return findButton(config.complete_button_matrix, fullScreenRegion, "nút complete")
+    return findButton(config.color_patterns.complete_button, fullScreenRegion, "nút complete")
 end
 
 -- Hàm bấm vào nút complete

@@ -23,6 +23,7 @@
 - Use default values when configuration is not provided
 - Group related configuration values together
 - Use descriptive names for configuration keys
+- All color patterns are now organized under config.color_patterns and old compatibility names have been removed
 
 ## Logging
 - Use `toast` for user-visible messages

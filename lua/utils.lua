@@ -204,7 +204,7 @@ end
 function utils.checkTikTokLoadedByColor()
     -- Sử dụng vùng tìm kiếm nếu được cấu hình
     local region = config.search_regions and config.search_regions.tiktok_loaded
-    local success, result, error = utils.findColorPattern(config.tiktok_matrix, region)
+    local success, result, error = utils.findColorPattern(config.color_patterns.tiktok_loaded, region)
     
     if success then
         logger.info("TikTok Lite đã load thành công")
@@ -218,67 +218,37 @@ end
 ------------------------------
 
 -- Mở ứng dụng TikTok Lite và đợi cho đến khi tải xong
-function utils.openTikTokLite(skipCheck)
+function utils.openTikTokLite(verify)
+    -- Mở TikTok Lite bằng bundle ID từ cấu hình
     local bundleID = config.app.bundle_id
-    local appName = config.app.name
     
-    logger.info("Đang mở " .. appName)
-    
-    -- Kiểm tra app có đang chạy không trước khi mở
-    local isRunning = appIsRunning(bundleID)
-    logger.debug("Kiểm tra: TikTok " .. (isRunning and "đang chạy" or "không chạy"))
-    
-    -- Đóng app nếu đang chạy để mở lại từ đầu
-    if isRunning then
-        logger.debug("Đóng TikTok đang chạy...")
-        local closeSuccess, closeError = safeExecute(closeApp, bundleID)
-        if not closeSuccess then
-            return false, "Lỗi khi đóng app: " .. closeError
-        end
+    -- Đóng TikTok Lite nếu đang chạy
+    if appIsRunning(bundleID) then
+        closeApp(bundleID)
+        logger.debug("Đã đóng TikTok Lite đang chạy, chờ " .. TIMING.APP_CLOSE_WAIT .. "s")
         mSleep(TIMING.APP_CLOSE_WAIT * 1000)
     end
     
-    -- Mở ứng dụng TikTok Lite
-    local openSuccess, openResult = safeExecute(runApp, bundleID)
+    -- Mở TikTok Lite
+    logger.info("Đang mở TikTok Lite...")
+    runApp(bundleID)
+    mSleep(config.timing.launch_wait * 1000)
     
-    if not openSuccess or not openResult then
-        logger.error("Lỗi: Không thể mở TikTok Lite")
-        return false, "Không thể mở TikTok Lite: " .. (openSuccess and "App không tồn tại" or openResult)
-    end
-    
-    -- Đợi app khởi động
-    local waitTime = config.timing.launch_wait
-    for i = 1, waitTime do
-        mSleep(1000)
-    end
-    
-    -- Kiểm tra và đóng popup Add Friends nếu xuất hiện
-    logger.debug("Kiểm tra popup Add Friends sau khi mở app...")
-    local popupClosed, popupError = utils.checkAndClosePopupByImage(config.images.popup.add_friends, config.popup_close.add_friends)
-    if popupClosed then
-        logger.debug("Đã đóng popup Add Friends")
-    elseif popupError then
-        logger.warning("Lỗi khi xử lý popup: " .. popupError)
-    end
-    
-    -- Bỏ qua kiểm tra nếu được yêu cầu
-    if skipCheck then
-        logger.debug("Bỏ qua kiểm tra, coi như đã mở thành công")
-        return true, nil
-    end
-    
-    -- Kiểm tra app có ở foreground không
-    local isFront = isFrontApp(bundleID)
-    if not isFront then
-        return false, "TikTok không ở foreground sau khi mở"
-    end
-    
-    -- Kiểm tra giao diện đã load
-    if config.check_ui_after_launch then
-        local loaded, loadError = utils.checkTikTokLoadedByColor()
-        if not loaded then
-            return false, loadError or "Giao diện TikTok chưa load hoàn tất"
+    -- Xác minh đã mở thành công nếu cần
+    if verify then
+        local region = config.search_regions.tiktok_loaded
+        logger.debug("Kiểm tra TikTok đã mở...")
+        local success, result, error = utils.findColorPattern(config.color_patterns.tiktok_loaded, region)
+        
+        if not success then
+            return false, "Lỗi khi kiểm tra TikTok đã mở: " .. (error or "")
         end
+        
+        if not result then
+            return false, "Không thể xác nhận TikTok đã mở"
+        end
+        
+        logger.info("Đã xác nhận TikTok đã mở thành công")
     end
     
     return true, nil
