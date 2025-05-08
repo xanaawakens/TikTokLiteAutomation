@@ -217,6 +217,7 @@ function fileManager.writeFile(filePath, content, backupFirst)
         backupFirst = true
     end
     
+    -- Fix: Đảm bảo chỉ truyền đúng 3 tham số cho writeFileAtomic
     return utils.writeFileAtomic(filePath, content, backupFirst)
 end
 
@@ -446,13 +447,35 @@ function fileManager.logResult(account, accountName, success, reason)
         end
     end
     
-    -- Ghi vào file kết quả
-    local writeSuccess, _, writeError = fileManager.writeFile(outputFile, logEntry .. "\n", false, true)
-    if not writeSuccess then
-        logger.error("Không thể ghi kết quả vào file analysis.txt: " .. tostring(writeError or ""))
+    -- Fix: Đảm bảo file tồn tại trước khi ghi
+    if not fileManager.fileExists(outputFile) then
+        -- Tạo file mới nếu chưa tồn tại
+        local newFileSuccess, _, newFileError = fileManager.writeFile(outputFile, "", false)
+        if not newFileSuccess then
+            logger.error("Không thể tạo file analysis.txt: " .. tostring(newFileError or ""))
+            return false
+        end
+    end
+    
+    -- Đọc nội dung hiện tại của file
+    local readSuccess, existingContent, readError = fileManager.readFile(outputFile, "")
+    if not readSuccess then
+        logger.error("Không thể đọc nội dung hiện tại của file analysis.txt: " .. tostring(readError or ""))
         return false
     end
     
+    -- Thêm log mới vào nội dung hiện tại 
+    local newContent = existingContent .. logEntry .. "\n"
+    
+    -- Fix: Ghi vào file kết quả với tham số đúng (chỉ 3 tham số)
+    local writeSuccess, _, writeError = fileManager.writeFile(outputFile, newContent, false)
+    if not writeSuccess then
+        logger.error("Không thể ghi kết quả vào file analysis.txt: " .. tostring(writeError or "") .. 
+                     " (Đường dẫn: " .. outputFile .. ")")
+        return false
+    end
+    
+    logger.info("Đã ghi log thành công vào file analysis.txt")
     return true
 end
 
@@ -506,6 +529,27 @@ function fileManager.init()
     fileManager.ensureDirectoryExists(fileManager.paths.backup)
     fileManager.ensureDirectoryExists(fileManager.paths.logs)
     fileManager.ensureDirectoryExists(fileManager.paths.screenshots)
+    
+    -- Kiểm tra và đảm bảo các file quan trọng có thể ghi
+    local analysisFile = fileManager.files.analysis
+    if not fileManager.fileExists(analysisFile) then
+        -- Tạo file analysis.txt nếu chưa tồn tại
+        local success, _, error = fileManager.writeFile(analysisFile, "", false)
+        if not success then
+            logger.warning("Không thể tạo file analysis.txt: " .. tostring(error or ""))
+        else
+            logger.debug("Đã tạo file analysis.txt")
+        end
+    else
+        -- Kiểm tra quyền ghi vào file
+        local testFile = io.open(analysisFile, "a")
+        if testFile then
+            testFile:close()
+            logger.debug("File analysis.txt tồn tại và có thể ghi")
+        else
+            logger.warning("File analysis.txt tồn tại nhưng không thể ghi")
+        end
+    end
     
     logger.info("Đã khởi tạo file_manager")
     return true
