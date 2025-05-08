@@ -604,6 +604,13 @@ function utils.writeFileAtomic(filePath, content, backupFirst)
         return false, nil, errMsg
     end
     
+    -- Đảm bảo thư mục cha tồn tại
+    local parentDir = filePath:match("(.+)/[^/]+$")
+    if parentDir then
+        local mkdirCmd = "mkdir -p \"" .. parentDir .. "\" 2>/dev/null"
+        os.execute(mkdirCmd)
+    end
+    
     -- Tạo backup nếu được yêu cầu và file đã tồn tại
     if backupFirst and io.open(filePath, "r") then
         -- Tên file backup
@@ -636,7 +643,23 @@ function utils.writeFileAtomic(filePath, content, backupFirst)
     -- Mở file tạm để ghi
     local tempFile = io.open(tempPath, "w")
     if not tempFile then
-        return false, nil, "Không thể tạo file tạm thời"
+        -- Thử sử dụng quyền hạn chỉ ghi trực tiếp vào file gốc nếu không thể tạo file tạm
+        local directFile = io.open(filePath, "w")
+        if not directFile then
+            return false, nil, "Không thể tạo file tạm thời và không thể mở file gốc: " .. filePath
+        end
+        
+        local success, writeError = pcall(function()
+            directFile:write(content)
+            directFile:flush()
+            directFile:close()
+        end)
+        
+        if not success then
+            return false, nil, "Ghi trực tiếp thất bại: " .. tostring(writeError)
+        end
+        
+        return true, filePath, nil
     end
     
     -- Ghi nội dung vào file tạm
@@ -682,7 +705,13 @@ function utils.writeFileAtomic(filePath, content, backupFirst)
         os.remove(tempPath)
         
         if not backupSuccess then
-            return false, nil, "Không thể hoàn thành ghi file"
+            -- Thử phương pháp khác: sử dụng lệnh hệ thống để sao chép file
+            local cpCommand = "cp \"" .. tempPath .. "\" \"" .. filePath .. "\" 2>/dev/null"
+            local cpSuccess = os.execute(cpCommand)
+            
+            if not cpSuccess then
+                return false, nil, "Không thể hoàn thành ghi file bằng cả 3 phương pháp"
+            end
         end
     end
     
