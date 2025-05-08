@@ -96,8 +96,8 @@ function dailyCheckin.findDailyCheckButton()
     -- Nếu không tìm thấy, cuộn màn hình để tìm
     logger.info("Không tìm thấy nút điểm danh, thử cuộn màn hình để tìm...")
     
-    -- Tối đa 3 lần cuộn
-    for i = 1, 3 do
+    -- Tối đa 10 lần cuộn
+    for i = 1, 10 do
         -- Cuộn từ giữa màn hình lên
         local midX = screenW / 2
         local startY = screenH * 0.7
@@ -164,7 +164,7 @@ function dailyCheckin.performDailyCheckin()
     end
 
     -- Đợi tab nhiệm vụ load
-    mSleep(6000)
+    mSleep(8000)
     
     -- Bước 2: Tìm và tap vào nút điểm danh
     local tapSuccess, tapError = dailyCheckin.tapDailyCheckButton()
