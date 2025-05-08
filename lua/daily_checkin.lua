@@ -144,7 +144,7 @@ function dailyCheckin.tapDailyCheckButton()
     touchDown(1, x, y)
     mSleep(100)
     touchUp(1, x, y)
-    mSleep(1000)
+    mSleep(4000)
     
     -- Không quan tâm kết quả, coi như thành công
     logger.info("Đã thực hiện tap vào nút điểm danh, tiếp tục nhiệm vụ...")
@@ -174,7 +174,7 @@ function dailyCheckin.performDailyCheckin()
     else
         logger.info("Đã tap vào nút điểm danh")
     end
-    
+    mSleep(1000)
     -- Luôn trả về thành công để tiếp tục với nhiệm vụ tiếp theo
     return true, "Hoàn thành bước điểm danh, tiếp tục nhiệm vụ"
 end
