@@ -7,6 +7,7 @@ local utils = require("utils")
 local rewards_live = require("rewards_live")
 local logger = require("logger")
 local fileManager = require("file_manager") -- Thêm module quản lý file mới
+local dailyCheckin = require("daily_checkin") -- Thêm module điểm danh hàng ngày
 
 local autoTiktok = {}
 
@@ -123,21 +124,49 @@ function autoTiktok.runTikTokLiteAutomation()
     local width, height = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
     
     -- 1. Khởi tạo ứng dụng
+    logger.info("===== PHẦN 1: ĐIỂM DANH HÀNG NGÀY =====")
+    logger.info("Khởi tạo ứng dụng cho phần điểm danh...")
     local success, error = initializeApp()
     if not success then
         return false, error
     end
+
+    -- 2. Thực hiện điểm danh hàng ngày
+    logger.info("Thực hiện điểm danh hàng ngày...")
+    local checkinSuccess, checkinError = dailyCheckin.performDailyCheckin()
     
-    -- 2. Di chuyển đến màn hình xem live
+    -- Không quan tâm kết quả thành công hay thất bại, tiếp tục nhiệm vụ tiếp theo
+    logger.info("Hoàn thành bước điểm danh, tiếp tục nhiệm vụ xem live...")
+    
+    -- 3. Đóng ứng dụng sau khi điểm danh
+    logger.info("Đóng ứng dụng sau khi điểm danh...")
+    
+    -- Đảm bảo đóng app hoàn toàn
+    local bundleID = config.app.bundle_id
+    closeApp(bundleID)
+    logger.info("Đã gửi lệnh đóng TikTok Lite")
+    
+    -- Đợi lâu hơn để đảm bảo app đóng hoàn toàn
+    mSleep(1000)
+    
+    -- 4. Mở lại ứng dụng để thực hiện nhiệm vụ xem live
+    logger.info("===== PHẦN 2: NHIỆM VỤ XEM LIVE =====")
+    logger.info("Khởi tạo lại ứng dụng cho phần xem live...")
+    success, error = initializeApp()
+    if not success then
+        return false, error
+    end
+    
+    -- 5. Di chuyển đến màn hình xem live
     local navSuccess, navError = navigateToLiveStream()
     if not navSuccess then
         return false, navError
     end
     
-    -- 3. Đợi để giao diện ổn định
+    -- 6. Đợi để giao diện ổn định
     mSleep(config.timing.ui_stabilize * 1000)
     
-    -- 4. Vuốt để chuyển sang 1 live stream khác (tránh live stream đầu tiên)
+    -- 7. Vuốt để chuyển sang 1 live stream khác (tránh live stream đầu tiên)
     local midX = math.floor(width / 2)       -- Giữa màn hình theo chiều ngang
     local startY = math.floor(height * 0.9)  -- Gần dưới cùng màn hình  
     local endY = math.floor(height * 0.6)    -- Khoảng giữa màn hình
@@ -183,7 +212,7 @@ function autoTiktok.runTikTokLiteAutomation()
         logger.info("Đã xác nhận live stream đã load thành công")
     end
     
-    -- 5. Check và click vào nút phần thưởng
+    -- 8. Check và click vào nút phần thưởng
     local rewardTapped = false
     local rewardError = nil
     local maxRewardAttempts = 4  -- Kiểm tra trong (4 lần * 1.5s)
@@ -262,7 +291,7 @@ function autoTiktok.runTikTokLiteAutomation()
         logger.info("Đã vào màn hình phần thưởng thành công!")
     end
     
-    -- 7. Thực hiện kéo xuống bên dưới (vuốt từ dưới đi lên)
+    -- 9. Thực hiện kéo xuống bên dưới (vuốt từ dưới đi lên)
     local startY = math.floor(height * 0.9)   -- Gần dưới cùng màn hình
     local endY = math.floor(height * 0.6)     -- Khoảng giữa màn hình
     local midX = math.floor(width / 2)       -- Giữa màn hình theo chiều ngang
@@ -279,7 +308,7 @@ function autoTiktok.runTikTokLiteAutomation()
     -- Đợi màn hình ổn định sau khi vuốt
     mSleep(2000)
     
-    -- 8. Check nút complete lần 1
+    -- 10. Check nút complete lần 1
     local completeFound, _, _, _ = rewards_live.checkCompleteButton(true)
     
     if completeFound then
@@ -296,7 +325,7 @@ function autoTiktok.runTikTokLiteAutomation()
     local consecutiveFailures = 0
     local adaptiveInterval = claimCheckInterval
         
-    -- 9. Vòng lặp chính - kiểm tra claim và complete
+    -- 11. Vòng lặp chính - kiểm tra claim và complete
     while true do
         -- Kiểm tra và bấm nút Claim
         local startTime = os.time()
@@ -327,9 +356,9 @@ function autoTiktok.runTikTokLiteAutomation()
                 return true, "Hoàn thành nhiệm vụ thành công sau khi claim"
             end
             
-            -- Đợi 10 giây rồi kiểm tra lại nút claim
+            -- Đợi 5 giây rồi kiểm tra lại nút claim
             -- Nếu vẫn còn nút claim (không thay đổi) thì báo lỗi
-            logger.info("Đợi 10s và kiểm tra xem nút claim còn hiện diện không...")
+            logger.info("Đợi 5s và kiểm tra xem nút claim còn hiện diện không...")
             mSleep(5000)
             
             local stillClaimButton, _, _, _ = rewards_live.checkClaimButton(true)

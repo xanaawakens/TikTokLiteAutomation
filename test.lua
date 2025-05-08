@@ -1,17 +1,75 @@
+--[[
+  test.lua - Simple test script for TikTok Lite Automation
+  
+  This script tests:
+  1. Daily check-in (optional task, tap once and continue)
+  2. Move to live mission 
+]]
+
 require("TSLib")
-require("config")
-require("utils")
-local width, height = _G.SCREEN_WIDTH, _G.SCREEN_HEIGHT
-    -- 4. Vuốt sang video khác
-local startY = math.floor(height * 0.9)   
-local endY = math.floor(height * 0.6)   
-local midX = math.floor(width / 2)
-touchDown(1, midX, startY)
-mSleep(100)
-for i = 1, 10 do
-    local moveY = startY - (i * (startY - endY) / 10)
-    touchMove(1, midX, moveY)
-    mSleep(10)
+local dailyCheckin = require("daily_checkin")
+local utils = require("utils")
+local config = require("config")
+local logger = require("logger")
+
+-- Function to test opening TikTok Lite
+local function openTikTok()
+    print("Opening TikTok Lite app...")
+    local appID = config.app.bundle_id
+    
+    -- Close app if already running
+    closeApp(appID)
+    print("Waiting for app to close...")
+    mSleep(config.timing.app_close_wait * 1000)
+    
+    -- Open app
+    print("Launching TikTok Lite...")
+    openURL("tiktok://")
+    
+    -- Wait for app to load
+    print("Waiting for app to load...")
+    mSleep(config.timing.launch_wait * 1000)
+    
+    print("TikTok Lite opened successfully")
+    return true
 end
-touchUp(1, midX, endY)
-mSleep(1000)
+
+-- Function to test the streamlined workflow
+local function runStreamlinedTest()
+    print("\n===== TESTING STREAMLINED WORKFLOW =====")
+    
+    -- Step 1: Open TikTok
+    print("Step 1: Opening TikTok Lite")
+    if not openTikTok() then
+        print("❌ Failed to open TikTok Lite")
+        return false
+    end
+    print("✅ App opened")
+    
+    -- Step 2: Attempt daily check-in (but don't verify success)
+    print("\nStep 2: Attempting daily check-in (optional)")
+    dailyCheckin.performDailyCheckin()
+    print("✓ Daily check-in attempted - continuing regardless of result")
+    
+    -- Step 3: Close the app to prepare for live mission
+    print("\nStep 3: Closing app to prepare for live mission")
+    closeApp(config.app.bundle_id)
+    print("Waiting for app to close...")
+    mSleep(5000)
+    print("✅ App closed")
+    
+    -- Step 4: Reopen for live mission
+    print("\nStep 4: Reopening for live mission")
+    if not openTikTok() then
+        print("❌ Failed to reopen TikTok Lite")
+        return false
+    end
+    
+    print("✅ App reopened for live mission")
+    print("\n✅ Test completed successfully")
+    
+    return true
+end
+
+-- Run the test
+runStreamlinedTest() 
