@@ -96,8 +96,8 @@ function dailyCheckin.findDailyCheckButton()
     -- Nếu không tìm thấy, cuộn màn hình để tìm
     logger.info("Không tìm thấy nút điểm danh, thử cuộn màn hình để tìm...")
     
-    -- Tối đa 10 lần cuộn
-    for i = 1, 10 do
+    -- Tối đa 8 lần cuộn
+    for i = 1, 8 do
         -- Cuộn từ giữa màn hình lên
         local midX = screenW / 2
         local startY = screenH * 0.7
@@ -105,10 +105,10 @@ function dailyCheckin.findDailyCheckButton()
         
         touchDown(1, midX, startY)
         mSleep(100)  -- Tăng thời gian chờ sau khi touch down
-        for step = 1, 20 do  -- Tăng số bước để cuộn mượt hơn
-            local currentY = startY - (step * (startY - endY) / 20)
+        for step = 1, 50 do  -- 50 bước cuộn
+            local currentY = startY - (step * (startY - endY) / 40)
             touchMove(1, midX, currentY)
-            mSleep(50)  -- Tăng thời gian chờ giữa các bước để cuộn chậm hơn
+            mSleep(50)  -- Giữ nguyên thời gian chờ giữa các bước
         end
         touchUp(1, midX, endY)
         
