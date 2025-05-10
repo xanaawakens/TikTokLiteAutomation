@@ -474,6 +474,9 @@ function rewardsLive.waitForRewardScreen(timeout, suppressNotification)
     end
 end
 
+-- PHAN 2 NHIEM VU LIVE --
+
+
 -- Xuất các hàm
 return {
     checkButtonLive = rewardsLive.checkButtonLive,
