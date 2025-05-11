@@ -75,6 +75,10 @@ local config = {
         video_watch_time = 15,     -- Thời gian xem mỗi video
         reward_check_interval = 60, -- Thời gian giữa các lần kiểm tra phần thưởng
         
+        -- Timing cho điểm danh hàng ngày
+        mission_tab_search = 2,    -- Thời gian chờ trước khi tìm tab nhiệm vụ
+        scroll_delay = 0.5,        -- Thời gian chờ sau mỗi lần cuộn
+        
         -- Timing cho rewards_live.lua
         live_button_search = 2.5,  -- Thời gian chờ trước khi tìm nút live
         ui_stabilize = 1.5,        -- Thời gian chờ UI ổn định sau khi thực hiện thao tác
@@ -145,7 +149,7 @@ local config = {
             {62, 62, 0xffffff},
             {53, 105, 0xffffff}
         },
-    
+        
         -- Ma trận màu kiểm tra đã load xong màn hình xem live
         in_live_screen = {
             {588, 1250, 0xff83b4},
@@ -157,7 +161,7 @@ local config = {
             {582, 1265, 0xff75b3},
             {602, 1274, 0xf34676}
         },
-    
+        
         -- Ma trận màu cho nút phần thưởng (màu 1)
         reward_button_1 = {
             {46, 578, 0xff9e00},
@@ -233,6 +237,45 @@ local config = {
             {393, 1220, 0xeeeeef},
             {423, 1240, 0xb0b0b4},
             {430, 1232, 0xb0b0b4}
+        },
+
+        -- Ma trận màu cho nút điểm danh hằng ngày
+        daily_check_button = {
+            {518, 800, 0xe83128},
+            {520, 799, 0xfefafa},
+            {534, 797, 0xffffff},
+            {536, 795, 0xe83128},
+            {527, 797, 0xe83128},
+            {523, 815, 0xffffff},
+            {520, 816, 0xe83128},
+            {659, 799, 0xe83128},
+            {659, 802, 0xffffff},
+            {643, 815, 0xffffff}
+        },
+        matrix_check_send_gift = {
+            {   71, 1074, 0xffffff},
+            {   71, 1073, 0xa6a6a6},
+            {   58, 1077, 0x858585},
+            {   71, 1082, 0x858585},
+            {   71, 1081, 0xf4f4f4},
+            {  334, 1072, 0xffffff},
+            {  335, 1073, 0xa2a2a2},
+            {  338, 1092, 0xe6e6e6},
+            {  339, 1091, 0x858585},
+            {  345, 1073, 0xa2a2a2},
+        },
+
+        maxtrix_send_gift_button = {
+            {   86,  938, 0xff2b6c},
+            {   86,  937, 0xffffff},
+            {   77,  938, 0xffffff},
+            {   77,  946, 0xffffff},
+            {   77,  945, 0xff3774},
+            {  126,  933, 0xff2b6c},
+            {  126,  934, 0xffffff},
+            {  126,  949, 0xffffff},
+            {  126,  950, 0xff004f},
+            {  123,  949, 0xff77a1},
         }
     },
     
@@ -241,6 +284,7 @@ local config = {
     search_regions = {
         live_button = {0, 0, 200, 200},       -- Vùng tìm nút xem live
         tiktok_loaded = {0, 1200, 750, 1350},  -- Vùng tìm thanh điều hướng dưới cùng
+        bottom_tabs = {0, 1200, 750, 1350},   -- Vùng tìm các tab dưới cùng
         reward_button = {0, 0, 375, 1350}       -- Vùng tìm nút phần thưởng (nửa màn hình bên trái)
     },
     
@@ -248,7 +292,7 @@ local config = {
     ui = {
         -- Tabs
         tab_home = {scaleCoord(375, 1270)},    -- Tab For You
-        tab_discover = {scaleCoord(500, 1270)}, -- Tab Discover
+        tab_mission = {scaleCoord(219, 1265)}, -- Tab Mission
         tab_me = {scaleCoord(650, 1270)},      -- Tab Profile
         
         -- Buttons
