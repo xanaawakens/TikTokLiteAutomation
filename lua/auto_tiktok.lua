@@ -358,8 +358,8 @@ function autoTiktok.runTikTokLiteAutomation()
             
             -- Đợi 5 giây rồi kiểm tra lại nút claim
             -- Nếu vẫn còn nút claim (không thay đổi) thì báo lỗi
-            logger.info("Đợi 20s và kiểm tra xem nút claim còn hiện diện không...")
-            mSleep(20000)
+            logger.info("Đợi 1.5s và kiểm tra xem nút claim còn hiện diện không...")
+            mSleep(1500)
             
             local stillClaimButton, _, _, _ = rewards_live.checkClaimButton(true)
             if stillClaimButton then
